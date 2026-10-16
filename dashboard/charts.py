@@ -21,6 +21,13 @@ MODE_COLORS = {"boids": "#7f8c9a", "rules": "#2a9df4", "ml": "#f5a623"}
 SIM_HZ = 60.0
 
 
+def filter_experiments(metrics: dict, prefix: str, keep: str) -> dict:
+    """Keeps experiments whose ID starts with `prefix` (plus `keep`, the live one for the KPIs)."""
+    if not prefix:
+        return metrics
+    return {eid: body for eid, body in metrics.items() if eid.startswith(prefix) or eid == keep}
+
+
 def samples_frame(metrics: dict) -> pd.DataFrame:
     """Flattens `/api/metrics` into one row per sample with experiment metadata and run ids."""
     frames = [_experiment_frame(eid, body) for eid, body in metrics.items() if body.get("samples")]

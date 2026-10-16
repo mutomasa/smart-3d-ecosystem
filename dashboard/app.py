@@ -23,6 +23,7 @@ from dashboard.charts import (
     drop_short_runs,
     eval_bar,
     eval_summary_frame,
+    filter_experiments,
     learning_curve_figure,
     mode_summary,
     samples_frame,
@@ -45,6 +46,10 @@ def api() -> ApiClient:
 def sidebar_controls() -> tuple[str, dict]:
     st.sidebar.header("Experiment")
     experiment_id = st.sidebar.text_input("Experiment ID", value="demo", max_chars=64)
+    st.sidebar.text_input(
+        "Compare experiments (ID prefix, empty = all)", key="compare_prefix",
+        value=st.query_params.get("compare", ""), max_chars=64,
+    )
     st.sidebar.header("Scenario")
     settings = {
         "preset": st.sidebar.selectbox("Preset", ["(custom)", *PRESETS]),
@@ -110,12 +115,14 @@ def live_metrics(client: ApiClient, experiment_id: str) -> None:
     except ApiError as exc:
         st.warning(str(exc))
         return
-    df = samples_frame(metrics)
+    prefix = st.session_state.get("compare_prefix", "")
+    df = samples_frame(filter_experiments(metrics, prefix, keep=experiment_id))
     if df.empty:
         st.info("No telemetry yet. Open the scene above; it reports metrics once per second.")
         return
     kpis(df[df["experiment_id"] == experiment_id])
-    comparison(df)
+    prefix = st.session_state.get("compare_prefix", "")
+    comparison(df[df["experiment_id"].str.startswith(prefix)] if prefix else df)
 
 
 def kpis(df) -> None:

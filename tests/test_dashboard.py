@@ -119,3 +119,11 @@ def test_short_runs_are_excluded_from_the_comparison():
     assert dropped == 1
     assert set(df["mode"]) == {"ml"}
     assert mode_summary(df, ["survivalRate"])["survivalRate count"].tolist() == [1]
+
+
+def test_compare_prefix_keeps_matching_and_live_experiments():
+    from dashboard.charts import filter_experiments
+
+    metrics = {"cmp-ml-1": {}, "cmp-rules-1": {}, "demo": {}, "other": {}}
+    assert set(filter_experiments(metrics, "cmp", keep="demo")) == {"cmp-ml-1", "cmp-rules-1", "demo"}
+    assert filter_experiments(metrics, "", keep="demo") == metrics
