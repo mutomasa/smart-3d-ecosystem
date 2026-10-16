@@ -9,6 +9,9 @@ import { FpsMeter } from "../ui/fpsMeter";
 import { Hud } from "../ui/hud";
 import { MetricsLog, downloadText } from "../ui/metricsLog";
 import { SimulationClient } from "./SimulationClient";
+import { PolicyBridge } from "./PolicyBridge";
+import { SettingsVersionGate, planSettings, type RemoteSettings } from "./settingsSync";
+import { experimentIdFromUrl, wsUrl, type SettingsMessage } from "../api/websocket";
 
 type FrameEvent = Extract<WorkerEvent, { type: "frame" }>;
 
@@ -24,6 +27,10 @@ export class App {
   private readonly log = new MetricsLog();
   private readonly controls: Controls;
   private lastFrame: FrameEvent | null = null;
+  private readonly bridge: PolicyBridge;
+  private readonly settingsGate = new SettingsVersionGate();
+  private lastTelemetry = -Infinity;
+  readonly experimentId = experimentIdFromUrl(location.search);
   private preset: Preset = PRESETS["Calm School"];
 
   constructor(container: HTMLElement, hudEl: HTMLElement) {
@@ -51,6 +58,8 @@ export class App {
         onSpawnFood: () => this.client.send({ type: "spawnFood" }),
       },
     );
+    this.bridge = new PolicyBridge(wsUrl(location, this.experimentId), this.client, (m) => this.applyRemoteSettings(m));
+    this.bridge.start();
     this.applyPreset(this.preset);
   }
 
@@ -81,10 +90,46 @@ export class App {
       fps: this.fps.fps(), agents: f.count, alive: f.alive, mode: f.mode,
       stepMs: f.telemetry.stepMs, dt: f.telemetry.dt,
     };
-    this.hud.update({ ...state, metrics: f.metrics, extra: [`Max cell ${f.telemetry.maxCellOccupancy} | Collisions ${f.telemetry.collisions} | dt changes ${f.telemetry.dtChanges}`] });
+    this.hud.update({ ...state, metrics: f.metrics, extra: [
+      `Max cell ${f.telemetry.maxCellOccupancy} | Collisions ${f.telemetry.collisions} | dt changes ${f.telemetry.dtChanges}`,
+      ...this.policyLines(f),
+    ] });
+    this.sendTelemetry(now, f);
     this.log.maybeRecord({ t: now, tick: f.tick, ...state, maxCell: f.telemetry.maxCellOccupancy, dtChanges: f.telemetry.dtChanges,
       survivalRate: f.metrics.survivalRate, foodCollected: f.metrics.foodCollected, meanEnergy: f.metrics.meanEnergy,
       dispersion: f.metrics.dispersion, collisions: f.metrics.collisions, predation: f.metrics.predation });
+  }
+
+  private policyLines(f: FrameEvent): string[] {
+    const b = this.bridge;
+    const p50 = b.client.latencyPercentile(50), p95 = b.client.latencyPercentile(95);
+    const latency = p50 === null ? "-" : `${p50.toFixed(1)}/${p95!.toFixed(1)} ms`;
+    const lines = [`Backend ${b.connection} | exp ${this.experimentId}`];
+    if (f.mode === "ml") {
+      lines.push(`Policy ${b.mlLabel} | ${f.policy.status}${f.policy.status === "fallback" ? " -> rules" : ""}`);
+      lines.push(`ML latency p50/p95 ${latency} | errors ${b.client.errors} | stale ${f.policy.staleDropped}`);
+    }
+    return lines;
+  }
+
+  private sendTelemetry(now: number, f: FrameEvent): void {
+    if (now - this.lastTelemetry < 1000) return;
+    this.lastTelemetry = now;
+    const p50 = this.bridge.client.latencyPercentile(50), p95 = this.bridge.client.latencyPercentile(95);
+    this.bridge.telemetry(f.tick, f.mode, {
+      ...f.metrics, fps: this.fps.fps(), stepMs: f.telemetry.stepMs, seed: this.controls.state.seed,
+      mlFallback: f.policy.status === "fallback" ? 1 : 0,
+      ...(p50 === null ? {} : { mlLatencyP50: p50, mlLatencyP95: p95! }),
+    });
+  }
+
+  private applyRemoteSettings(msg: SettingsMessage): void {
+    if (!this.settingsGate.accept(msg.version)) return;
+    const plan = planSettings(msg.settings as RemoteSettings, this.controls.state);
+    if (plan.preset) return this.applyPreset(PRESETS[plan.preset]);
+    this.controls.refresh();
+    if (plan.reset) return this.reset(this.controls.state);
+    plan.commands.forEach((c) => this.client.send(c));
   }
 
   private applyPreset(preset: Preset | undefined): void {

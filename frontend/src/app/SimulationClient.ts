@@ -1,12 +1,14 @@
 import type { WorkerCommand, WorkerEvent } from "../sim/protocol";
 
 type FrameEvent = Extract<WorkerEvent, { type: "frame" }>;
+export type ObservationsEvent = Extract<WorkerEvent, { type: "observations" }>;
 export type FrameHandler = (frame: FrameEvent, data: Float32Array) => void;
 
 /** Main-thread side of the worker: sends commands and hands frames to the renderer. */
 export class SimulationClient {
   private readonly worker: Worker;
   private latest: FrameEvent | null = null;
+  onObservations: (event: ObservationsEvent) => void = () => {};
 
   constructor(private readonly onLog: (level: string, message: string) => void = console.info) {
     this.worker = new Worker(new URL("../sim/boids.worker.ts", import.meta.url), { type: "module" });
@@ -29,6 +31,7 @@ export class SimulationClient {
 
   private receive(event: WorkerEvent): void {
     if (event.type === "log") return this.onLog(event.level, event.message);
+    if (event.type === "observations") return this.onObservations(event);
     if (this.latest) this.giveBack(this.latest); // drop the older, unrendered frame
     this.latest = event;
   }

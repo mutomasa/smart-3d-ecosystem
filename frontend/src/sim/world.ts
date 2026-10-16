@@ -4,6 +4,7 @@ import { FoodAttraction, FoodSystem } from "./food";
 import { packFish } from "./frame";
 import { GroupSummaries, OBS_DIM } from "./groups";
 import { MetricsTracker, type EcosystemMetrics } from "./metrics";
+import { ExternalMlPolicy } from "./mlPolicy";
 import { BoidsOnlyPolicy, RulesPolicy, type PolicyMode, type StrategyPolicy } from "./policies";
 import { PredatorAvoidance, PredatorSystem } from "./predator";
 import { Rng } from "./rng";
@@ -39,6 +40,10 @@ export class World {
   private readonly foodRng: Rng;
   private policy: StrategyPolicy = new BoidsOnlyPolicy();
   private sinceDecision = Infinity;
+  /** Simulated seconds since reset. */
+  simTime = 0;
+  /** Incremented on every policy decision (the worker uses it to emit ML observations). */
+  decisions = 0;
 
   constructor(config: SimConfig, settings: Partial<WorldSettings> = {}) {
     this.sim = new BoidsSimulation(config);
@@ -71,8 +76,13 @@ export class World {
     return this.policy.mode;
   }
 
-  /** "ml" falls back to rules until an ML policy source is attached (see setPolicy). */
+  /** In "ml" mode strategies come from the backend (rules fallback when it is silent). */
+  get mlPolicy(): ExternalMlPolicy | null {
+    return this.policy instanceof ExternalMlPolicy ? this.policy : null;
+  }
+
   setMode(mode: PolicyMode): void {
+    if (mode === "ml") return this.setPolicy(new ExternalMlPolicy(() => this.simTime));
     this.setPolicy(mode === "boids" ? new BoidsOnlyPolicy() : new RulesPolicy());
   }
 
@@ -85,6 +95,7 @@ export class World {
 
   step(dt: number): void {
     this.config.dt = dt;
+    this.simTime += dt;
     this.groups.compute(this.sim.state);
     this.sinceDecision += dt;
     if (this.sinceDecision >= 1 / POLICY_HZ - 1e-9) this.decide();
@@ -141,6 +152,7 @@ export class World {
 
   private decide(): void {
     this.sinceDecision = 0;
+    this.decisions++;
     this.groups.compute(this.sim.state);
     this.policy.decide(this.buildObservations(), this.groups.size, this.strategies);
   }
