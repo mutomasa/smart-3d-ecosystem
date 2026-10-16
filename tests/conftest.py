@@ -6,6 +6,13 @@ from backend.metrics import ExperimentStore
 from backend.policy import PolicyRegistry, RulesPolicy
 
 
+@pytest.fixture(autouse=True)
+def _no_real_checkpoint(monkeypatch, tmp_path):
+    """Tests never pick up a locally trained backend/models/policy.pt."""
+    monkeypatch.setenv("POLICY_CHECKPOINT", str(tmp_path / "missing.pt"))
+    monkeypatch.setenv("FORCE_CPU", "1")
+
+
 @pytest.fixture
 def store() -> ExperimentStore:
     return ExperimentStore()

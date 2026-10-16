@@ -1,6 +1,7 @@
 import { BufferPool, frameFloats } from "./frame";
 import { AdaptiveTimestep, FixedStepClock } from "./fixedStep";
-import type { StepTelemetry, WorkerCommand, WorkerEvent } from "./protocol";
+import { OBS_DIM } from "./groups";
+import type { PolicyState, StepTelemetry, WorkerCommand, WorkerEvent } from "./protocol";
 import { World, type WorldSettings } from "./world";
 
 export type PostFn = (event: WorkerEvent, transfer: Transferable[]) => void;
@@ -22,6 +23,7 @@ export class SimulationRuntime {
 
   private adaptive = true;
   private dtChanges = 0;
+  private emittedDecisions = 0;
 
   constructor(private readonly post: PostFn) {}
 
@@ -42,6 +44,9 @@ export class SimulationRuntime {
         return this.world?.setFood(cmd.count);
       case "spawnFood":
         return this.world?.spawnFood();
+      case "policyActions":
+        this.world?.mlPolicy?.receive(cmd.requestTick, cmd.actions, cmd.modelVersion);
+        return;
       case "pause":
         return this.setPaused(cmd.paused);
       case "returnBuffer":
@@ -56,11 +61,24 @@ export class SimulationRuntime {
     const steps = this.clock.advance(nowMs);
     if (steps === 0) return;
     this.runSteps(this.world, steps);
+    this.publishObservations(this.world);
     this.publishFrame(this.world);
+  }
+
+  /** Emits the observation batch once per new policy decision while in ML mode. */
+  private publishObservations(world: World): void {
+    if (!world.mlPolicy || world.decisions === this.emittedDecisions) return;
+    this.emittedDecisions = world.decisions;
+    const groupIds: number[] = [];
+    for (let g = 0; g < world.groups.groupCount; g++) if (world.groups.size[g] > 0) groupIds.push(g);
+    const features = new Float32Array(groupIds.length * OBS_DIM);
+    groupIds.forEach((g, k) => features.set(world.observations.subarray(g * OBS_DIM, (g + 1) * OBS_DIM), k * OBS_DIM));
+    this.post({ type: "observations", tick: world.tick, groupIds, features }, [features.buffer]);
   }
 
   private reset(settings: Partial<WorldSettings>): void {
     this.world = World.create(settings);
+    this.emittedDecisions = 0;
     this.adaptive = settings.adaptiveDt ?? true;
     this.dtChanges = 0;
     this.timestep = new AdaptiveTimestep({ enabled: this.adaptive });
@@ -91,7 +109,7 @@ export class SimulationRuntime {
     this.inFlight++;
     const event: WorkerEvent = {
       type: "frame", tick: world.tick, count, alive: world.aliveCount(), mode: world.mode,
-      buffer, telemetry: this.telemetry(world), metrics: world.metricsSnapshot(),
+      buffer, telemetry: this.telemetry(world), metrics: world.metricsSnapshot(), policy: policyState(world),
       predators: packPredators(world), food: packFood(world),
     };
     this.post(event, [buffer]);
@@ -109,6 +127,12 @@ export class SimulationRuntime {
       dtChanges: this.dtChanges,
     };
   }
+}
+
+function policyState(world: World): PolicyState {
+  const ml = world.mlPolicy;
+  if (!ml) return { status: "local", modelVersion: world.mode, staleDropped: 0 };
+  return { status: ml.status, modelVersion: ml.modelVersion, staleDropped: ml.staleDropped };
 }
 
 function packPredators(world: World): Float32Array {

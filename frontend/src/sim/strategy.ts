@@ -26,11 +26,14 @@ export class GroupStrategies {
     this.w = new Float32Array(groupCount * 3);
   }
 
-  /** Sets the target for group `g`; direction is normalized, weights are clamped to [0, 1]. */
+  /**
+   * Sets the target for group `g`. The direction is clamped to at most unit length (its magnitude
+   * is the preference strength; zero = none) and the weights are clamped to [0, 1].
+   */
   setTarget(g: number, dx: number, dy: number, dz: number, wPred: number, wFood: number, wCoh: number): void {
     if (g < 0 || g >= this.groupCount) return;
     const len = length3(dx, dy, dz);
-    const s = len < EPSILON || !Number.isFinite(len) ? 0 : 1 / len;
+    const s = !Number.isFinite(len) ? 0 : len > 1 ? 1 / len : 1;
     this.targetDir.set([dx * s, dy * s, dz * s], g * 3);
     this.targetW.set([clamp01(wPred), clamp01(wFood), clamp01(wCoh)], g * 3);
   }

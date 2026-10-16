@@ -22,10 +22,11 @@ def test_rules_policy_is_batched():
     assert actions.shape == (len(CASES), 6)
 
 
-def test_direction_normalization_handles_zero_and_nan():
-    d = normalize_directions(np.array([[3, 4, 0], [0, 0, 0], [np.nan, 1, 0]], dtype=np.float32))
+def test_direction_clamp_handles_zero_small_and_nan():
+    d = normalize_directions(np.array([[3, 4, 0], [0, 0, 0], [np.nan, 1, 0], [0.1, 0, 0]], dtype=np.float32))
     np.testing.assert_allclose(d[0], [0.6, 0.8, 0], atol=1e-6)
-    np.testing.assert_array_equal(d[1], [0, 0, 0])
+    np.testing.assert_array_equal(d[1], [0, 0, 0])  # zero stays zero ("no preference")
+    np.testing.assert_allclose(d[3], [0.1, 0, 0])  # weak preference keeps its magnitude
     assert np.isfinite(d).all()
 
 
