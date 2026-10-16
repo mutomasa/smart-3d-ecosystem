@@ -1,3 +1,5 @@
+import type { SocketFactory } from "../api/websocket";
+import { BackendLink } from "./backendLink";
 import { BufferPool, frameFloats } from "./frame";
 import { AdaptiveTimestep, FixedStepClock } from "./fixedStep";
 import { OBS_DIM } from "./groups";
@@ -24,8 +26,10 @@ export class SimulationRuntime {
   private adaptive = true;
   private dtChanges = 0;
   private emittedDecisions = 0;
+  private seed = 0;
+  private backend: BackendLink | null = null;
 
-  constructor(private readonly post: PostFn) {}
+  constructor(private readonly post: PostFn, private readonly socketFactory?: SocketFactory) {}
 
   handle(cmd: WorkerCommand): void {
     switch (cmd.type) {
@@ -44,6 +48,11 @@ export class SimulationRuntime {
         return this.world?.setFood(cmd.count);
       case "spawnFood":
         return this.world?.spawnFood();
+      case "connectBackend":
+        return this.connectBackend(cmd.url);
+      case "clientStats":
+        if (this.backend) this.backend.clientFps = cmd.fps;
+        return;
       case "policyActions":
         this.world?.mlPolicy?.receive(cmd.requestTick, cmd.actions, cmd.modelVersion);
         return;
@@ -63,6 +72,14 @@ export class SimulationRuntime {
     this.runSteps(this.world, steps);
     this.publishObservations(this.world);
     this.publishFrame(this.world);
+    this.backend?.maybeSendTelemetry(nowMs, this.world, this.lastStepMs, this.seed);
+  }
+
+  private connectBackend(url: string): void {
+    if (this.backend) return;
+    this.backend = new BackendLink(url, (msg) => this.post({ type: "settings", version: msg.version, settings: msg.settings }, []), this.socketFactory);
+    if (this.world) this.backend.attach(this.world);
+    this.backend.connect();
   }
 
   /** Emits the observation batch once per new policy decision while in ML mode. */
@@ -73,11 +90,14 @@ export class SimulationRuntime {
     for (let g = 0; g < world.groups.groupCount; g++) if (world.groups.size[g] > 0) groupIds.push(g);
     const features = new Float32Array(groupIds.length * OBS_DIM);
     groupIds.forEach((g, k) => features.set(world.observations.subarray(g * OBS_DIM, (g + 1) * OBS_DIM), k * OBS_DIM));
+    if (this.backend) return this.backend.request(world.tick, groupIds, features);
     this.post({ type: "observations", tick: world.tick, groupIds, features }, [features.buffer]);
   }
 
   private reset(settings: Partial<WorldSettings>): void {
     this.world = World.create(settings);
+    this.backend?.attach(this.world);
+    this.seed = this.world.config.seed;
     this.emittedDecisions = 0;
     this.adaptive = settings.adaptiveDt ?? true;
     this.dtChanges = 0;
@@ -110,6 +130,7 @@ export class SimulationRuntime {
     const event: WorkerEvent = {
       type: "frame", tick: world.tick, count, alive: world.aliveCount(), mode: world.mode,
       buffer, telemetry: this.telemetry(world), metrics: world.metricsSnapshot(), policy: policyState(world),
+      backend: this.backend?.state() ?? null,
       predators: packPredators(world), food: packFood(world),
     };
     this.post(event, [buffer]);

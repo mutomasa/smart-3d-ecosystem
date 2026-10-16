@@ -14,6 +14,8 @@ export type WorkerCommand =
   | { type: "setFood"; count: number }
   | { type: "spawnFood" }
   | { type: "policyActions"; requestTick: number; modelVersion: string; actions: GroupActionInput[] }
+  | { type: "connectBackend"; url: string }
+  | { type: "clientStats"; fps: number }
   | { type: "pause"; paused: boolean }
   | { type: "returnBuffer"; buffer: ArrayBuffer };
 
@@ -40,19 +42,28 @@ export type WorkerEvent =
       telemetry: StepTelemetry;
       metrics: EcosystemMetrics;
       policy: PolicyState;
+      backend: BackendState | null;
       /** Predator positions/velocities (x,y,z,vx,vy,vz per predator), copied. */
       predators: Float32Array;
       /** Food patches (x,y,z,amount per patch; amount 0 = depleted), copied. */
       food: Float32Array;
     }
   | { type: "log"; level: "info" | "warn"; message: string }
+  | { type: "settings"; version: number; settings: Record<string, unknown> }
   | {
-      /** ML mode only: raw observations of the non-empty groups, emitted at the policy rate. */
+      /** ML mode only, when no backend link is attached: raw observations of the non-empty groups. */
       type: "observations";
       tick: number;
       groupIds: number[];
       features: Float32Array;
     };
+
+export interface BackendState {
+  connection: "connecting" | "open" | "closed";
+  latencyP50: number | null;
+  latencyP95: number | null;
+  errors: number;
+}
 
 export interface PolicyState {
   status: MlStatus | "local";
