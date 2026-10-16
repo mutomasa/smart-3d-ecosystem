@@ -29,3 +29,13 @@ Vite を単独で動かす場合は `BACKEND_URL=http://localhost:8010 npm run d
 uv run pytest
 cd frontend && npm test
 ```
+
+## ダッシュボード (Streamlit)
+
+```bash
+API_URL=http://localhost:8000 SCENE_URL=http://localhost:5173/ uv run streamlit run dashboard/app.py
+```
+
+- 3D シーン（FastAPI が配信する Vite ビルド、または Vite dev server）を iframe で埋め込み、`?experiment=<ID>` で実験 ID を共有
+- サイドバーから設定をシーンへ push（REST → WebSocket、version 付き last-writer-wins）
+- 1 秒ごとのテレメトリから KPI・時系列・モード別（Boids / Rules / ML）の run 最終値の平均±標準偏差を表示
