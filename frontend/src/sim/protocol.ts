@@ -1,4 +1,5 @@
 import type { BoidsWeights } from "./config";
+import type { EcosystemMetrics } from "./metrics";
 import type { PolicyMode, WorldSettings } from "./world";
 
 /** Main thread -> worker. */
@@ -8,6 +9,9 @@ export type WorkerCommand =
   | { type: "setWeights"; weights: Partial<BoidsWeights> }
   | { type: "setCount"; count: number }
   | { type: "setMode"; mode: PolicyMode }
+  | { type: "setPredators"; count: number }
+  | { type: "setFood"; count: number }
+  | { type: "spawnFood" }
   | { type: "pause"; paused: boolean }
   | { type: "returnBuffer"; buffer: ArrayBuffer };
 
@@ -32,5 +36,10 @@ export type WorkerEvent =
       mode: PolicyMode;
       buffer: ArrayBuffer;
       telemetry: StepTelemetry;
+      metrics: EcosystemMetrics;
+      /** Predator positions/velocities (x,y,z,vx,vy,vz per predator), copied. */
+      predators: Float32Array;
+      /** Food patches (x,y,z,amount per patch; amount 0 = depleted), copied. */
+      food: Float32Array;
     }
   | { type: "log"; level: "info" | "warn"; message: string };

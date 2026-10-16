@@ -35,8 +35,13 @@ export class SimulationRuntime {
       case "setCount":
         return this.world?.setCount(cmd.count);
       case "setMode":
-        if (this.world) this.world.mode = cmd.mode;
-        return;
+        return this.world?.setMode(cmd.mode);
+      case "setPredators":
+        return this.world?.setPredators(cmd.count);
+      case "setFood":
+        return this.world?.setFood(cmd.count);
+      case "spawnFood":
+        return this.world?.spawnFood();
       case "pause":
         return this.setPaused(cmd.paused);
       case "returnBuffer":
@@ -86,7 +91,8 @@ export class SimulationRuntime {
     this.inFlight++;
     const event: WorkerEvent = {
       type: "frame", tick: world.tick, count, alive: world.aliveCount(), mode: world.mode,
-      buffer, telemetry: this.telemetry(world),
+      buffer, telemetry: this.telemetry(world), metrics: world.metricsSnapshot(),
+      predators: packPredators(world), food: packFood(world),
     };
     this.post(event, [buffer]);
   }
@@ -103,4 +109,24 @@ export class SimulationRuntime {
       dtChanges: this.dtChanges,
     };
   }
+}
+
+function packPredators(world: World): Float32Array {
+  const { predators } = world;
+  const out = new Float32Array(predators.count * 6);
+  for (let p = 0; p < predators.count; p++) {
+    out.set(predators.pos.subarray(p * 3, p * 3 + 3), p * 6);
+    out.set(predators.vel.subarray(p * 3, p * 3 + 3), p * 6 + 3);
+  }
+  return out;
+}
+
+function packFood(world: World): Float32Array {
+  const { food } = world;
+  const out = new Float32Array(food.count * 4);
+  for (let f = 0; f < food.count; f++) {
+    out.set(food.pos.subarray(f * 3, f * 3 + 3), f * 4);
+    out[f * 4 + 3] = food.amount[f];
+  }
+  return out;
 }
