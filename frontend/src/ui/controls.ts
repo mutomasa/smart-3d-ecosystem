@@ -7,6 +7,8 @@ export interface ControlState {
   count: number;
   seed: number;
   paused: boolean;
+  /** Off => dt fixed at 1/60 for reproducible comparison runs. Applied on reset. */
+  adaptiveDt: boolean;
   weights: BoidsWeights;
 }
 
@@ -52,6 +54,7 @@ export class Controls {
 
   private buildActions(): void {
     const f = this.gui.addFolder("Run");
+    f.add(this.state, "adaptiveDt").name("Adaptive dt (on reset)");
     f.add(this.state, "paused").name("Pause").onChange((p: boolean) => this.h.onPause(p));
     f.add({ reset: () => this.h.onReset(this.state) }, "reset").name("Reset (same seed)");
     f.add({ log: () => this.h.onDownloadLog() }, "log").name("Download metrics log");

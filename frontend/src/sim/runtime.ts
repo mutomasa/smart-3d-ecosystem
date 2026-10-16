@@ -16,11 +16,14 @@ export class SimulationRuntime {
   paused = false;
   private readonly pool = new BufferPool();
   private inFlight = 0;
-  private timestep = new AdaptiveTimestep();
+  private timestep = new AdaptiveTimestep({ enabled: false });
   private clock = new FixedStepClock(this.timestep.dt * 1000);
   private lastStepMs = 0;
 
-  constructor(private readonly post: PostFn, private readonly adaptive = true) {}
+  private adaptive = true;
+  private dtChanges = 0;
+
+  constructor(private readonly post: PostFn) {}
 
   handle(cmd: WorkerCommand): void {
     switch (cmd.type) {
@@ -53,7 +56,9 @@ export class SimulationRuntime {
 
   private reset(settings: Partial<WorldSettings>): void {
     this.world = World.create(settings);
-    this.timestep = new AdaptiveTimestep(this.adaptive);
+    this.adaptive = settings.adaptiveDt ?? true;
+    this.dtChanges = 0;
+    this.timestep = new AdaptiveTimestep({ enabled: this.adaptive });
     this.clock = new FixedStepClock(this.timestep.dt * 1000);
   }
 
@@ -68,6 +73,7 @@ export class SimulationRuntime {
     this.lastStepMs = (performance.now() - t0) / steps;
     if (!this.timestep.observe(this.lastStepMs)) return;
     this.clock.dtMs = this.timestep.dt * 1000;
+    this.dtChanges++;
     const message = `adaptive dt -> 1/${Math.round(1 / this.timestep.dt)} s (step ${this.lastStepMs.toFixed(2)} ms)`;
     this.post({ type: "log", level: "warn", message }, []);
   }
@@ -94,6 +100,7 @@ export class SimulationRuntime {
       collisions: stats.collisions,
       maxCellOccupancy: stats.maxCellOccupancy,
       droppedMs: this.clock.droppedMs,
+      dtChanges: this.dtChanges,
     };
   }
 }

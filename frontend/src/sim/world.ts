@@ -8,6 +8,8 @@ export interface WorldSettings {
   count: number;
   seed: number;
   weights: Partial<BoidsWeights>;
+  /** false => keep dt = 1/60 for the whole run (reproducible comparisons). */
+  adaptiveDt: boolean;
 }
 
 /** Facade over the simulation subsystems; owned by the Web Worker (or by tests / benchmarks). */

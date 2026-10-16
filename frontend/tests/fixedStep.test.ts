@@ -19,19 +19,32 @@ describe("FixedStepClock", () => {
 });
 
 describe("AdaptiveTimestep", () => {
-  it("switches to 1/30 under load and back with hysteresis", () => {
-    const a = new AdaptiveTimestep(true, 0.6);
-    for (let i = 0; i < 200; i++) a.observe(15);
+  const opts = { budget: 0.6, warmup: 10, patience: 5 };
+
+  it("ignores JIT warm-up spikes at start-up (regression #6)", () => {
+    const a = new AdaptiveTimestep(opts);
+    for (let i = 0; i < 10; i++) expect(a.observe(50)).toBe(false);
+    for (let i = 0; i < 100; i++) a.observe(2);
+    expect(a.dt).toBe(AdaptiveTimestep.FAST);
+  });
+
+  it("needs a sustained overload before switching, and switches back with hysteresis", () => {
+    const a = new AdaptiveTimestep(opts);
+    for (let i = 0; i < 10; i++) a.observe(1);
+    for (let i = 0; i < 4; i++) a.observe(15);
+    a.observe(1); // a single good sample resets the streak
+    expect(a.dt).toBe(AdaptiveTimestep.FAST);
+    for (let i = 0; i < 5; i++) a.observe(15);
     expect(a.dt).toBe(AdaptiveTimestep.SLOW);
-    for (let i = 0; i < 200; i++) a.observe(6);
-    expect(a.dt).toBe(AdaptiveTimestep.SLOW); // within hysteresis band
-    for (let i = 0; i < 200; i++) a.observe(1);
+    for (let i = 0; i < 50; i++) a.observe(6); // inside hysteresis band
+    expect(a.dt).toBe(AdaptiveTimestep.SLOW);
+    for (let i = 0; i < 5; i++) a.observe(1);
     expect(a.dt).toBe(AdaptiveTimestep.FAST);
   });
 
   it("never changes dt when disabled", () => {
-    const a = new AdaptiveTimestep(false);
-    for (let i = 0; i < 100; i++) expect(a.observe(100)).toBe(false);
+    const a = new AdaptiveTimestep({ enabled: false });
+    for (let i = 0; i < 500; i++) expect(a.observe(100)).toBe(false);
     expect(a.dt).toBe(AdaptiveTimestep.FAST);
   });
 });

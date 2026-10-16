@@ -7,8 +7,8 @@ type Frame = Extract<WorkerEvent, { type: "frame" }>;
 
 function setup() {
   const events: WorkerEvent[] = [];
-  const rt = new SimulationRuntime((e) => events.push(e), false);
-  rt.handle({ type: "init", settings: { count: 100, seed: 3 } });
+  const rt = new SimulationRuntime((e) => events.push(e));
+  rt.handle({ type: "init", settings: { count: 100, seed: 3, adaptiveDt: false } });
   const frames = () => events.filter((e): e is Frame => e.type === "frame");
   return { rt, events, frames };
 }
@@ -43,6 +43,14 @@ describe("SimulationRuntime", () => {
     expect(f.count).toBe(400);
     expect(f.buffer.byteLength).toBeGreaterThanOrEqual(400 * FISH_STRIDE * 4);
     expect(f.alive).toBe(400);
+  });
+
+  it("reports dt changes in telemetry (0 when adaptive dt is off)", () => {
+    const { rt, frames } = setup();
+    rt.tick(0);
+    rt.tick(20);
+    expect(frames()[0].telemetry.dtChanges).toBe(0);
+    expect(frames()[0].telemetry.dt).toBeCloseTo(1 / 60);
   });
 
   it("does not advance while paused", () => {
