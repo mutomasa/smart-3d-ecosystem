@@ -18,6 +18,8 @@ export interface StepTelemetry {
   collisions: number;
   maxCellOccupancy: number;
   droppedMs: number;
+  /** Number of adaptive dt switches since reset (0 => the run used a single fixed dt). */
+  dtChanges: number;
 }
 
 /** Worker -> main thread. `buffer` is transferred and must be returned with `returnBuffer`. */

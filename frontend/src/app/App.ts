@@ -29,7 +29,7 @@ export class App {
     this.hud = new Hud(hudEl);
     this.client = new SimulationClient((level, msg) => console[level === "warn" ? "warn" : "info"](msg));
     this.controls = new Controls(
-      { preset: this.preset.name, count: this.preset.count, seed: this.preset.seed, paused: false },
+      { preset: this.preset.name, count: this.preset.count, seed: this.preset.seed, paused: false, adaptiveDt: true },
       {
         onCount: (count) => this.client.send({ type: "setCount", count }),
         onWeights: (weights) => this.client.send({ type: "setWeights", weights }),
@@ -67,8 +67,8 @@ export class App {
       fps: this.fps.fps(), agents: f.count, alive: f.alive, mode: f.mode,
       stepMs: f.telemetry.stepMs, dt: f.telemetry.dt,
     };
-    this.hud.update({ ...state, extra: [`Max cell ${f.telemetry.maxCellOccupancy} | Collisions ${f.telemetry.collisions}`] });
-    this.log.maybeRecord({ t: now, tick: f.tick, ...state, maxCell: f.telemetry.maxCellOccupancy, collisions: f.telemetry.collisions });
+    this.hud.update({ ...state, extra: [`Max cell ${f.telemetry.maxCellOccupancy} | Collisions ${f.telemetry.collisions} | dt changes ${f.telemetry.dtChanges}`] });
+    this.log.maybeRecord({ t: now, tick: f.tick, ...state, maxCell: f.telemetry.maxCellOccupancy, collisions: f.telemetry.collisions, dtChanges: f.telemetry.dtChanges });
   }
 
   private applyPreset(preset: Preset | undefined): void {
@@ -84,7 +84,7 @@ export class App {
     Object.assign(state.weights, weights);
     this.controls.refresh();
     this.log.clear();
-    this.client.send({ type: "reset", settings: { count: state.count, seed: state.seed, weights } });
+    this.client.send({ type: "reset", settings: { count: state.count, seed: state.seed, weights, adaptiveDt: state.adaptiveDt } });
     this.client.send({ type: "setMode", mode: this.preset.mode });
     this.client.send({ type: "pause", paused: state.paused });
   }

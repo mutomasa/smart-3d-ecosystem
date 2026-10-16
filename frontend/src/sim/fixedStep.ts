@@ -35,27 +35,51 @@ export class FixedStepClock {
   }
 }
 
+export interface AdaptiveOptions {
+  enabled: boolean;
+  /** Fraction of the 1/60 frame budget above which dt is relaxed to 1/30. */
+  budget: number;
+  /** Observations ignored at start-up (JIT warm-up). */
+  warmup: number;
+  /** Consecutive over/under-budget observations required before switching. */
+  patience: number;
+}
+
+const DEFAULT_ADAPTIVE: AdaptiveOptions = { enabled: true, budget: 0.6, warmup: 120, patience: 60 };
+
 /**
  * Chooses dt = 1/60 normally and 1/30 when the measured step cost stays above `budget` of the
- * 1/60 frame budget (and back again with hysteresis).
+ * 1/60 frame budget. Start-up samples are ignored and a switch needs `patience` consecutive
+ * observations, so JIT warm-up spikes never change dt. Disable it for reproducible comparisons.
  */
 export class AdaptiveTimestep {
   static readonly FAST = 1 / 60;
   static readonly SLOW = 1 / 30;
-  private ema = 0;
+  private readonly opts: AdaptiveOptions;
+  private seen = 0;
+  private streak = 0;
   dt = AdaptiveTimestep.FAST;
 
-  constructor(private readonly enabled = true, private readonly budget = 0.6) {}
+  constructor(options: Partial<AdaptiveOptions> = {}) {
+    this.opts = { ...DEFAULT_ADAPTIVE, ...options };
+  }
 
   /** Feeds the cost of one tick (ms); returns true when dt changed. */
   observe(stepMs: number): boolean {
-    this.ema = this.ema === 0 ? stepMs : this.ema * 0.95 + stepMs * 0.05;
-    if (!this.enabled) return false;
-    const fastBudget = AdaptiveTimestep.FAST * 1000 * this.budget;
-    const next = this.ema > fastBudget ? AdaptiveTimestep.SLOW
-      : this.ema < fastBudget * 0.5 ? AdaptiveTimestep.FAST : this.dt;
-    const changed = next !== this.dt;
-    this.dt = next;
-    return changed;
+    this.seen++;
+    if (!this.opts.enabled || this.seen <= this.opts.warmup) return false;
+    const wanted = this.wantedDt(stepMs);
+    this.streak = wanted === this.dt ? 0 : this.streak + 1;
+    if (this.streak < this.opts.patience) return false;
+    this.dt = wanted;
+    this.streak = 0;
+    return true;
+  }
+
+  private wantedDt(stepMs: number): number {
+    const fastBudget = AdaptiveTimestep.FAST * 1000 * this.opts.budget;
+    if (stepMs > fastBudget) return AdaptiveTimestep.SLOW;
+    if (stepMs < fastBudget * 0.5) return AdaptiveTimestep.FAST;
+    return this.dt;
   }
 }
