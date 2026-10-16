@@ -1,6 +1,7 @@
 import GUI from "lil-gui";
 import { DEFAULT_WEIGHTS, type BoidsWeights } from "../sim/config";
 import { PRESET_NAMES } from "../presets";
+import type { PolicyMode } from "../sim/policies";
 
 export interface ControlState {
   preset: string;
@@ -9,6 +10,9 @@ export interface ControlState {
   paused: boolean;
   /** Off => dt fixed at 1/60 for reproducible comparison runs. Applied on reset. */
   adaptiveDt: boolean;
+  mode: PolicyMode;
+  predators: number;
+  food: number;
   weights: BoidsWeights;
 }
 
@@ -18,6 +22,10 @@ export interface ControlHandlers {
   onPause(paused: boolean): void;
   onReset(state: ControlState): void;
   onPreset(name: string): void;
+  onMode(mode: PolicyMode): void;
+  onPredators(n: number): void;
+  onFood(n: number): void;
+  onSpawnFood(): void;
   onDownloadLog(): void;
 }
 
@@ -29,6 +37,7 @@ export class Controls {
   constructor(initial: Omit<ControlState, "weights">, private readonly h: ControlHandlers) {
     this.state = { ...initial, weights: { ...DEFAULT_WEIGHTS } };
     this.buildScenario();
+    this.buildEcosystem();
     this.buildWeights();
     this.buildActions();
   }
@@ -44,9 +53,17 @@ export class Controls {
     f.add(this.state, "seed", 0, 99999, 1).name("Seed");
   }
 
+  private buildEcosystem(): void {
+    const f = this.gui.addFolder("Ecosystem");
+    f.add(this.state, "mode", ["boids", "rules", "ml"]).name("Policy").onChange((m: PolicyMode) => this.h.onMode(m));
+    f.add(this.state, "predators", 0, 5, 1).name("Predators").onFinishChange((n: number) => this.h.onPredators(n));
+    f.add(this.state, "food", 0, 10, 1).name("Food patches").onFinishChange((n: number) => this.h.onFood(n));
+    f.add({ spawn: () => this.h.onSpawnFood() }, "spawn").name("Drop food");
+  }
+
   private buildWeights(): void {
     const f = this.gui.addFolder("Boids gains");
-    const keys: (keyof BoidsWeights)[] = ["separation", "alignment", "cohesion", "boundary"];
+    const keys: (keyof BoidsWeights)[] = ["separation", "alignment", "cohesion", "boundary", "predator", "food", "ml"];
     for (const k of keys) {
       f.add(this.state.weights, k, 0, 5, 0.05).onChange((v: number) => this.h.onWeights({ [k]: v }));
     }

@@ -34,7 +34,9 @@ export class BoidsSimulation {
   readonly config: SimConfig;
   readonly stats: StepStats = { neighborChecks: 0, collisions: 0, maxCellOccupancy: 0 };
   tick = 0;
-  private grid: SpatialGrid;
+  readonly grid: SpatialGrid;
+  /** Optional per-group multiplier of the cohesion weight (set by the strategy layer). */
+  cohesionScale: ((group: number) => number) | null = null;
   private rng: Rng;
   private contributors: SteeringContributor[] = [];
   private readonly ranges = new Int32Array(54);
@@ -107,7 +109,7 @@ export class BoidsSimulation {
     alignmentForce(force, sums, vx, vy, vz, config);
     addScaled3(acc, force, w.alignment);
     cohesionForce(force, sums, px, py, pz, vx, vy, vz, config);
-    addScaled3(acc, force, w.cohesion);
+    addScaled3(acc, force, w.cohesion * (this.cohesionScale ? this.cohesionScale(state.group[i]) : 1));
     boundaryForce(force, px, py, pz, vx, vy, vz, config);
     addScaled3(acc, force, w.boundary);
     for (const c of this.contributors) c.contribute(i, state, config, acc);

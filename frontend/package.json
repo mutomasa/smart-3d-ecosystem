@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "bench": "tsx scripts/benchmark.ts"
+    "bench": "tsx scripts/benchmark.ts",
+    "compare": "tsx scripts/compare.ts"
   },
   "dependencies": {
     "lil-gui": "^0.21.0",
