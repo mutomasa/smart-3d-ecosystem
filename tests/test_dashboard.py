@@ -97,3 +97,15 @@ def test_api_client_against_real_app(client):
     api.reset("exp-x", 3, "rules", "Food Rush")
     assert api.push_settings("exp-x", {"preset": "Food Rush"})["settings"] == {"preset": "Food Rush"}
     assert "exp-x" in api.metrics()
+
+
+def test_eval_summary_and_learning_curve_figures():
+    from dashboard.charts import eval_bar, eval_summary_frame, learning_curve_figure
+
+    report = {"summary": [{"policy": "rules", "return_mean": 1.0, "return_std": 0.1},
+                          {"policy": "ppo-v1", "return_mean": 2.0, "return_std": 0.2}]}
+    summary = eval_summary_frame(report)
+    assert list(summary["policy"]) == ["rules", "ppo-v1"]
+    assert len(eval_bar(summary, "return").data) == 1
+    curve = pd.DataFrame({"timesteps": [10, 20], "return_ma": [0.0, 1.0]})
+    assert len(learning_curve_figure({"ppo-v1": curve, "bad": pd.DataFrame()}).data) == 1

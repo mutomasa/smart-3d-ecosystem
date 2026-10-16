@@ -5,18 +5,24 @@ uv run streamlit run dashboard/app.py --server.port 8501
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 from pathlib import Path
 
+import pandas as pd
 import streamlit as st
 
+# `streamlit run dashboard/app.py` puts dashboard/ (not the repo root) on sys.path.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from dashboard.api_client import ApiClient, ApiError
 from dashboard.charts import (
     METRICS,
     comparison_bar,
+    eval_bar,
+    eval_summary_frame,
+    learning_curve_figure,
     mode_summary,
     samples_frame,
     time_series_figure,
@@ -25,6 +31,9 @@ from dashboard.charts import (
 API_URL = os.environ.get("API_URL", "http://localhost:8000")
 SCENE_URL = os.environ.get("SCENE_URL", API_URL.rstrip("/") + "/")
 PRESETS = ["Calm School", "Predator Attack", "Food Rush", "ML vs Rules"]
+ROOT = Path(__file__).resolve().parent.parent
+EVAL_REPORT = ROOT / "outputs" / "eval" / "latest.json"
+PPO_RUNS = ROOT / "outputs" / "ppo"
 KPI_METRICS = ["survivalRate", "foodCollected", "meanEnergy", "dispersion", "fps", "stepMs"]
 
 
@@ -128,6 +137,24 @@ def comparison(df) -> None:
     st.dataframe(summary, width="stretch", hide_index=True)
 
 
+def offline_evaluation() -> None:
+    """Results of `training.evaluate` / `training.train_ppo` (held-out seeds, training env)."""
+    st.header("Offline evaluation (training environment, held-out seeds)")
+    if not EVAL_REPORT.exists():
+        st.caption("Run `uv run python -m training.evaluate` to produce a report.")
+        return
+    report = json.loads(EVAL_REPORT.read_text())
+    summary = eval_summary_frame(report)
+    st.caption(f"policies {report['meta'].get('policies')} | seeds {report['meta'].get('seeds')}")
+    cols = st.columns(3)
+    for col, metric in zip(cols, ["return", "survival_rate", "food_collected"]):
+        col.plotly_chart(eval_bar(summary, metric), width="stretch")
+    st.dataframe(summary.round(3), width="stretch", hide_index=True)
+    curves = {p.parent.name: pd.read_csv(p) for p in sorted(PPO_RUNS.glob("*/learning_curve.csv"))}
+    if curves:
+        st.plotly_chart(learning_curve_figure(curves), width="stretch")
+
+
 def main() -> None:
     st.set_page_config(page_title="Smart 3D Ecosystem", layout="wide")
     st.title("SMART 3D ECOSYSTEM")
@@ -137,6 +164,7 @@ def main() -> None:
     status_bar(client)
     scene(experiment_id)
     live_metrics(client, experiment_id)
+    offline_evaluation()
 
 
 main()

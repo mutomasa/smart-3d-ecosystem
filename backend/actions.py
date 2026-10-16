@@ -5,6 +5,9 @@ from __future__ import annotations
 import numpy as np
 
 EPS = 1e-6
+# Raw policy outputs are clipped to [-RAW_ACTION_LIMIT, RAW_ACTION_LIMIT] both by the training
+# environment's action space (SB3 clips to it) and at inference, so both paths match.
+RAW_ACTION_LIMIT = 5.0
 
 
 def normalize_directions(directions: np.ndarray) -> np.ndarray:
@@ -22,7 +25,7 @@ def sigmoid(x: np.ndarray) -> np.ndarray:
 
 def postprocess(raw: np.ndarray) -> np.ndarray:
     """Raw network output (N, 6) -> [direction with |d| <= 1 (3), weights in (0, 1) (3)]."""
-    raw = np.asarray(raw, dtype=np.float32)
+    raw = np.clip(np.asarray(raw, dtype=np.float32), -RAW_ACTION_LIMIT, RAW_ACTION_LIMIT)
     return np.concatenate([normalize_directions(raw[:, :3]), sigmoid(raw[:, 3:])], axis=1)
 
 

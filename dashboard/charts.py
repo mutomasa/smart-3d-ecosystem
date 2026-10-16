@@ -84,3 +84,28 @@ def comparison_bar(summary: pd.DataFrame, metric: str) -> go.Figure:
         )
     fig.update_layout(height=280, margin={"l": 10, "r": 10, "t": 30, "b": 10}, title=METRICS.get(metric, metric))
     return fig
+
+
+def eval_summary_frame(report: dict) -> pd.DataFrame:
+    """`outputs/eval/latest.json` -> one row per policy (mean / std columns)."""
+    return pd.DataFrame(report.get("summary", []))
+
+
+def eval_bar(summary: pd.DataFrame, metric: str) -> go.Figure:
+    fig = go.Figure()
+    if f"{metric}_mean" in summary:
+        fig.add_bar(x=summary["policy"], y=summary[f"{metric}_mean"],
+                    error_y={"type": "data", "array": summary[f"{metric}_std"].fillna(0)})
+    fig.update_layout(height=280, margin={"l": 10, "r": 10, "t": 30, "b": 10}, title=metric)
+    return fig
+
+
+def learning_curve_figure(curves: dict[str, pd.DataFrame]) -> go.Figure:
+    fig = go.Figure()
+    for name, df in curves.items():
+        if {"timesteps", "return_ma"} <= set(df.columns):
+            fig.add_scatter(x=df["timesteps"], y=df["return_ma"], mode="lines", name=name)
+    fig.update_layout(height=300, margin={"l": 10, "r": 10, "t": 30, "b": 10},
+                      title="PPO learning curve (episode return, moving average)",
+                      xaxis_title="timesteps", yaxis_title="return")
+    return fig

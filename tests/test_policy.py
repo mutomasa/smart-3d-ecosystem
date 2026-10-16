@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from backend.actions import clamp_actions, normalize_directions, postprocess
+from backend.actions import RAW_ACTION_LIMIT, clamp_actions, normalize_directions, postprocess
 from backend.policy import PolicyRegistry, RulesPolicy
 
 CASES = json.loads((Path(__file__).parents[1] / "shared/fixtures/rules_cases.json").read_text())
@@ -30,11 +30,11 @@ def test_direction_clamp_handles_zero_small_and_nan():
     assert np.isfinite(d).all()
 
 
-def test_postprocess_bounds_weights_with_sigmoid():
+def test_postprocess_clips_raw_output_and_bounds_weights_with_sigmoid():
     out = postprocess(np.array([[1, 0, 0, -100, 0, 100]], dtype=np.float32))
-    assert out[0, 3] == pytest.approx(0, abs=1e-6)
+    assert out[0, 3] == pytest.approx(1 / (1 + np.exp(RAW_ACTION_LIMIT)))
     assert out[0, 4] == pytest.approx(0.5)
-    assert out[0, 5] == pytest.approx(1, abs=1e-6)
+    assert out[0, 5] == pytest.approx(1 / (1 + np.exp(-RAW_ACTION_LIMIT)))
 
 
 def test_clamp_actions_never_exceeds_bounds():
