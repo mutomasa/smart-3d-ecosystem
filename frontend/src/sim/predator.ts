@@ -12,10 +12,12 @@ export interface PredatorConfig {
   catchRadius: number;
   /** Seconds a predator rests after a catch. */
   digestTime: number;
+  /** Within this distance a predator chases the nearest fish instead of the group centre. */
+  pursuitRadius: number;
 }
 
 export const DEFAULT_PREDATOR: PredatorConfig = {
-  speed: 11, turnAccel: 12, dangerRadius: 18, catchRadius: 1.4, digestTime: 1.0,
+  speed: 11, turnAccel: 12, dangerRadius: 18, catchRadius: 1.4, digestTime: 1.0, pursuitRadius: 12,
 };
 
 export const MAX_PREDATORS = 5;
@@ -38,12 +40,17 @@ export class PredatorSystem {
     this.count = next;
   }
 
-  /** Moves predators towards the nearest non-empty group centre. */
-  move(centers: Float32Array, groupSizes: Uint32Array, world: SimConfig, dt: number): void {
+  /**
+   * Moves predators towards the nearest non-empty group centre, or towards the nearest fish once
+   * one is within the pursuit radius (a dispersed school has no fish at its centre).
+   */
+  move(centers: Float32Array, groupSizes: Uint32Array, world: SimConfig, dt: number, state?: BoidState): void {
+    const r2 = this.cfg.pursuitRadius ** 2;
     for (let p = 0; p < this.count; p++) {
       this.digest[p] = Math.max(0, this.digest[p] - dt);
-      const g = nearestGroup(this.pos, p * 3, centers, groupSizes);
-      if (g >= 0) this.steer(p, centers[g * 3], centers[g * 3 + 1], centers[g * 3 + 2], dt);
+      const prey = state ? closestFish(state, this.pos, p * 3, r2) : -1;
+      if (prey >= 0) this.steer(p, state!.pos[prey * 3], state!.pos[prey * 3 + 1], state!.pos[prey * 3 + 2], dt);
+      else this.steerToGroup(p, centers, groupSizes, dt);
       this.integrate(p, world, dt);
     }
   }
@@ -68,6 +75,11 @@ export class PredatorSystem {
     this.pos.set([rng.range(-hx, hx) * 0.8, rng.range(-hy, hy) * 0.8, rng.range(-hz, hz) * 0.8], p * 3);
     this.vel.set([0, 0, this.cfg.speed * 0.5], p * 3);
     this.digest[p] = 0;
+  }
+
+  private steerToGroup(p: number, centers: Float32Array, groupSizes: Uint32Array, dt: number): void {
+    const g = nearestGroup(this.pos, p * 3, centers, groupSizes);
+    if (g >= 0) this.steer(p, centers[g * 3], centers[g * 3 + 1], centers[g * 3 + 2], dt);
   }
 
   private steer(p: number, tx: number, ty: number, tz: number, dt: number): void {

@@ -100,7 +100,7 @@ export class World {
     this.sinceDecision += dt;
     if (this.sinceDecision >= 1 / POLICY_HZ - 1e-9) this.decide();
     this.strategies.smooth(dt);
-    this.predators.move(this.groups.center, this.groups.size, this.config, dt);
+    this.predators.move(this.groups.center, this.groups.size, this.config, dt, this.sim.state);
     this.sim.step();
     this.predators.eat(this.sim.state);
     this.food.step(this.sim.state, this.config, this.foodRng, dt);

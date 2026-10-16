@@ -1,0 +1,8 @@
+{
+  "n_fish": 48,
+  "predators": [1, 2],
+  "food": [2, 3],
+  "predator_speed": [9.5, 11.5],
+  "episode_seconds": 30.0,
+  "reward": {"food": 1.0, "survival": 0.2, "cohesion": 0.1, "prey_lost": 2.0, "collision": 0.05, "steering": 0.01}
+}
