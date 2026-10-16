@@ -17,8 +17,11 @@ uv run python scripts/check_gpu.py
 ## 開発サーバー
 
 ```bash
-./scripts/dev.sh   # FastAPI :8000 / Vite :5173 / Streamlit :8501
+./scripts/dev.sh                    # FastAPI :8000 / Vite :5173 / Streamlit :8501
+BACKEND_PORT=8010 ./scripts/dev.sh  # 8000 が使用中の場合（Vite proxy / Streamlit も追従）
 ```
+
+Vite を単独で動かす場合は `BACKEND_URL=http://localhost:8010 npm run dev` でプロキシ先を変更できます。
 
 ## テスト
 
