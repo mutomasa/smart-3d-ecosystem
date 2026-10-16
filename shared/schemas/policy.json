@@ -1,0 +1,47 @@
+{
+  "version": "1.0.0",
+  "description": "Policy observation/action contract shared by the frontend (TypeScript), backend (FastAPI) and training (Gymnasium).",
+  "coordinate_system": {
+    "handedness": "right-handed, Y up (three.js convention)",
+    "units": "world units (1 unit ~ 1 body length of a fish)",
+    "world_half_extents": [50.0, 25.0, 50.0]
+  },
+  "observation": {
+    "features": [
+      "group_center_x", "group_center_y", "group_center_z",
+      "group_velocity_x", "group_velocity_y", "group_velocity_z",
+      "nearest_predator_relative_x", "nearest_predator_relative_y", "nearest_predator_relative_z",
+      "nearest_predator_distance",
+      "nearest_food_relative_x", "nearest_food_relative_y", "nearest_food_relative_z",
+      "nearest_food_distance",
+      "mean_energy",
+      "group_density",
+      "group_dispersion",
+      "nearby_group_count_normalized",
+      "predator_present",
+      "food_present"
+    ],
+    "raw_units": "Clients send RAW world-unit values. Normalization is done only in Python (backend.normalization) so that training and inference share one implementation.",
+    "absent_sentinel": "When no predator/food exists the relative vector is 0, distance equals max_distance and the *_present flag is 0."
+  },
+  "normalization": {
+    "max_speed": 12.0,
+    "max_distance": 150.0,
+    "max_density": 1.0,
+    "max_energy": 1.0
+  },
+  "action": {
+    "outputs": [
+      "desired_direction_x", "desired_direction_y", "desired_direction_z",
+      "predator_avoidance_weight", "food_attraction_weight", "cohesion_weight"
+    ],
+    "direction": "unit vector; zero vector is allowed and means 'no preference'",
+    "weights_range": [0.0, 1.0]
+  },
+  "limits": {
+    "max_groups": 32,
+    "max_message_bytes": 65536,
+    "policy_rate_hz": [5, 10],
+    "request_timeout_ms": 250
+  }
+}
