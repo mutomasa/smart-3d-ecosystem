@@ -136,3 +136,20 @@ export function axisPush(p: number, half: number, margin: number): number {
   if (p < -inner) return Math.min(1, (-inner - p) / margin);
   return 0;
 }
+
+/**
+ * Removes the outward (wall-ward) component of `v` for agents inside the boundary margin,
+ * fading in with penetration depth, so fleeing / goal-seeking forces slide along walls instead
+ * of pinning the school against them.
+ */
+export function removeOutward(v: Float32Array, px: number, py: number, pz: number, cfg: SimConfig): void {
+  v[0] = clipAxis(v[0], axisPush(px, cfg.halfExtents[0], cfg.boundaryMargin));
+  v[1] = clipAxis(v[1], axisPush(py, cfg.halfExtents[1], cfg.boundaryMargin));
+  v[2] = clipAxis(v[2], axisPush(pz, cfg.halfExtents[2], cfg.boundaryMargin));
+}
+
+function clipAxis(component: number, push: number): number {
+  // push < 0 => near the + wall (outward is +), push > 0 => near the - wall (outward is -).
+  const outward = push < 0 ? component > 0 : push > 0 ? component < 0 : false;
+  return outward ? component * (1 - Math.abs(push)) : component;
+}

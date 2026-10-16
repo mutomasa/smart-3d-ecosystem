@@ -2,6 +2,7 @@ import type { SimConfig } from "./config";
 import type { Rng } from "./rng";
 import type { BoidState } from "./state";
 import { W_PREDATOR, type GroupStrategies } from "./strategy";
+import { removeOutward } from "./steering";
 import { EPSILON, length3 } from "./vec3";
 
 export interface PredatorConfig {
@@ -118,6 +119,8 @@ function closestFish(state: BoidState, pos: Float32Array, o: number, r2: number)
 
 /** Fish flee from predators inside the danger radius; strength scales with the group strategy. */
 export class PredatorAvoidance {
+  private readonly flee = new Float32Array(3);
+
   constructor(private readonly predators: PredatorSystem, private readonly strategies: GroupStrategies) {}
 
   contribute(i: number, state: BoidState, cfg: SimConfig, out: Float32Array): void {
@@ -125,6 +128,8 @@ export class PredatorAvoidance {
     if (w <= 0 || this.predators.count === 0) return;
     const o = i * 3;
     const r = this.predators.cfg.dangerRadius;
+    const flee = this.flee;
+    flee.fill(0);
     for (let p = 0; p < this.predators.count; p++) {
       const q = p * 3;
       const dx = state.pos[o] - this.predators.pos[q];
@@ -133,9 +138,13 @@ export class PredatorAvoidance {
       const d = length3(dx, dy, dz);
       if (d >= r) continue;
       const k = (w * cfg.maxForce * (1 - d / r)) / Math.max(d, EPSILON);
-      out[0] += d < EPSILON ? w * cfg.maxForce : dx * k;
-      out[1] += dy * k;
-      out[2] += dz * k;
+      flee[0] += d < EPSILON ? w * cfg.maxForce : dx * k;
+      flee[1] += dy * k;
+      flee[2] += dz * k;
     }
+    removeOutward(flee, state.pos[o], state.pos[o + 1], state.pos[o + 2], cfg);
+    out[0] += flee[0];
+    out[1] += flee[1];
+    out[2] += flee[2];
   }
 }
