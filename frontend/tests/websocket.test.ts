@@ -1,20 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { PolicyClient, experimentIdFromUrl, type SocketLike, type PolicyClientHandlers } from "../src/api/websocket";
+import { PolicyClient, experimentIdFromUrl, type PolicyClientHandlers } from "../src/api/websocket";
 import { SettingsVersionGate, planSettings } from "../src/app/settingsSync";
 import { DEFAULT_WEIGHTS } from "../src/sim/config";
-
-class FakeSocket implements SocketLike {
-  readyState = 0;
-  sent: string[] = [];
-  onopen: SocketLike["onopen"] = null;
-  onclose: SocketLike["onclose"] = null;
-  onerror: SocketLike["onerror"] = null;
-  onmessage: SocketLike["onmessage"] = null;
-  send(d: string) { this.sent.push(d); }
-  close() { this.readyState = 3; this.onclose?.({}); }
-  open() { this.readyState = 1; this.onopen?.({}); }
-  push(msg: object) { this.onmessage?.({ data: JSON.stringify(msg) }); }
-}
+import { FakeSocket } from "./fakeSocket";
 
 function setup() {
   const sockets: FakeSocket[] = [];
