@@ -10,13 +10,16 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "bench": "tsx scripts/benchmark.ts"
+    "bench": "tsx scripts/benchmark.ts",
+    "compare": "tsx scripts/compare.ts",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "lil-gui": "^0.21.0",
     "three": "^0.186.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/node": "^26.6.5",
     "@types/three": "^0.186.0",
     "tsx": "^4.23.15",
