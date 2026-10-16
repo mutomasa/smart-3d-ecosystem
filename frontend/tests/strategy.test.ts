@@ -4,13 +4,15 @@ import { RulesPolicy, BoidsOnlyPolicy, rulesAction, RULES } from "../src/sim/pol
 import { OBS_DIM, FEATURE_NAMES } from "../src/sim/groups";
 
 describe("GroupStrategies", () => {
-  it("normalizes directions, clamps weights and handles zero / NaN safely", () => {
+  it("clamps directions to unit length, clamps weights and handles zero / NaN safely", () => {
     const s = new GroupStrategies(2);
     s.setTarget(0, 3, 4, 0, 2, -1, NaN);
     expect(Array.from(s.targetDir.slice(0, 3))).toEqual([expect.closeTo(0.6), expect.closeTo(0.8), 0]);
     expect(Array.from(s.targetW.slice(0, 3))).toEqual([1, 0, 0]);
     s.setTarget(1, 0, 0, 0, 0.5, 0.5, 0.5);
     expect(Array.from(s.targetDir.slice(3, 6))).toEqual([0, 0, 0]);
+    s.setTarget(1, 0.25, 0, 0, 0.5, 0.5, 0.5); // weak preference keeps its magnitude
+    expect(s.targetDir[3]).toBeCloseTo(0.25);
     s.setTarget(7, 1, 0, 0, 1, 1, 1); // out of range: ignored
   });
 

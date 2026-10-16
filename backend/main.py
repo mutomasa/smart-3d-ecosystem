@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from backend.metrics import ExperimentStore
+from backend.ml_policy import build_registry
 from backend.policy import PolicyRegistry
 from backend.schemas import CONTRACT, ResetRequest, SettingsEnvelope, SimulationSettings
 from backend.ws import ConnectionManager, PolicyService, build_router
@@ -26,7 +27,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 def create_app(registry: PolicyRegistry | None = None, store: ExperimentStore | None = None) -> FastAPI:
-    registry = registry or PolicyRegistry()
+    registry = registry or build_registry()
     store = store or ExperimentStore()
     manager = ConnectionManager()
     service = PolicyService(registry, timeout_s=CONTRACT.request_timeout_ms / 1000)
