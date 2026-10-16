@@ -1,0 +1,4 @@
+html, body { margin: 0; height: 100%; background: #030b1a; color: #cfe8ff; font-family: system-ui, sans-serif; overflow: hidden; }
+#app { position: fixed; inset: 0; }
+#hud { position: fixed; top: 8px; left: 8px; padding: 6px 10px; background: rgba(3, 16, 36, 0.75); border: 1px solid #12406b; border-radius: 6px; font-size: 12px; font-variant-numeric: tabular-nums; pointer-events: none; white-space: pre; }
+#hud .warn { color: #ffb347; }
