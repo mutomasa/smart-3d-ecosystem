@@ -57,10 +57,16 @@ export const DEFAULT_CONFIG: SimConfig = {
   weights: { ...DEFAULT_WEIGHTS },
 };
 
+/** Builds a config from defaults; `undefined` override values are ignored. */
 export function makeConfig(overrides: Partial<SimConfig> = {}): SimConfig {
   return {
     ...DEFAULT_CONFIG,
-    ...overrides,
-    weights: { ...DEFAULT_CONFIG.weights, ...(overrides.weights ?? {}) },
+    ...withoutUndefined(overrides),
+    halfExtents: [...(overrides.halfExtents ?? DEFAULT_CONFIG.halfExtents)] as [number, number, number],
+    weights: { ...DEFAULT_CONFIG.weights, ...withoutUndefined(overrides.weights ?? {}) },
   };
+}
+
+function withoutUndefined<T extends object>(obj: T): Partial<T> {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as Partial<T>;
 }
