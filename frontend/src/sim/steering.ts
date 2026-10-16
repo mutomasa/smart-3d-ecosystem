@@ -7,10 +7,13 @@ export class NeighborSums {
   readonly align = new Float32Array(3);
   readonly coh = new Float32Array(3);
   neighbors = 0;
+  /** Agents found inside the perception radius (before the topological limit). */
+  candidates = 0;
   separated = 0;
   collisions = 0;
 
   reset(): void {
+    this.candidates = 0;
     this.sep.fill(0);
     this.align.fill(0);
     this.coh.fill(0);
@@ -22,58 +25,61 @@ export class NeighborSums {
 
 /**
  * Scans candidate neighbours of agent `i` and accumulates separation / alignment / cohesion sums.
- * Coincident agents (distance 0) get a deterministic index-based push instead of a division by zero.
+ * Separation always uses every agent inside the separation radius; alignment and cohesion use at
+ * most `cfg.maxNeighbors` agents (topological limit). Coincident agents (distance 0) get a
+ * deterministic index-based push instead of a division by zero.
  */
 export function accumulateNeighbors(
   i: number,
-  candidates: Int32Array,
-  n: number,
+  indices: Int32Array,
+  ranges: Int32Array,
+  rangeCount: number,
   pos: Float32Array,
   vel: Float32Array,
   cfg: SimConfig,
   sums: NeighborSums,
 ): void {
-  sums.reset();
   const o = i * 3;
   const px = pos[o], py = pos[o + 1], pz = pos[o + 2];
   const r2 = cfg.perceptionRadius * cfg.perceptionRadius;
   const s2 = cfg.separationRadius * cfg.separationRadius;
   const c2 = cfg.collisionRadius * cfg.collisionRadius;
-  for (let k = 0; k < n; k++) {
-    const j = candidates[k];
-    if (j === i) continue;
-    const q = j * 3;
-    const dx = pos[q] - px, dy = pos[q + 1] - py, dz = pos[q + 2] - pz;
-    const d2 = dx * dx + dy * dy + dz * dz;
-    if (d2 > r2) continue;
-    addNeighbor(sums, pos, vel, q);
-    if (d2 < c2) sums.collisions++;
-    if (d2 < s2) addSeparation(sums, dx, dy, dz, d2, i, j);
+  const limit = cfg.maxNeighbors;
+  // Hot loop: accumulate into locals and write `sums` once at the end.
+  let ax = 0, ay = 0, az = 0, cx = 0, cy = 0, cz = 0, sx = 0, sy = 0, sz = 0;
+  let neighbors = 0, candidates = 0, separated = 0, collisions = 0;
+  for (let r = 0; r < rangeCount; r++) {
+    const end = ranges[r * 2 + 1];
+    for (let k = ranges[r * 2]; k < end; k++) {
+      const j = indices[k];
+      const q = j * 3;
+      const dx = pos[q] - px, dy = pos[q + 1] - py, dz = pos[q + 2] - pz;
+      const d2 = dx * dx + dy * dy + dz * dz;
+      if (d2 > r2 || j === i) continue;
+      candidates++;
+      if (neighbors < limit) {
+        ax += vel[q]; ay += vel[q + 1]; az += vel[q + 2];
+        cx += pos[q]; cy += pos[q + 1]; cz += pos[q + 2];
+        neighbors++;
+      }
+      if (d2 >= s2) continue;
+      separated++;
+      if (d2 < c2) collisions++;
+      if (d2 < EPSILON) {
+        sx += i < j ? -1 : 1; // deterministic push apart when exactly overlapping
+      } else {
+        // Push away with weight 1/d (vector / d^2).
+        sx -= dx / d2; sy -= dy / d2; sz -= dz / d2;
+      }
+    }
   }
-}
-
-function addNeighbor(sums: NeighborSums, pos: Float32Array, vel: Float32Array, q: number): void {
-  sums.align[0] += vel[q];
-  sums.align[1] += vel[q + 1];
-  sums.align[2] += vel[q + 2];
-  sums.coh[0] += pos[q];
-  sums.coh[1] += pos[q + 1];
-  sums.coh[2] += pos[q + 2];
-  sums.neighbors++;
-}
-
-function addSeparation(
-  sums: NeighborSums, dx: number, dy: number, dz: number, d2: number, i: number, j: number,
-): void {
-  sums.separated++;
-  if (d2 < EPSILON) {
-    sums.sep[0] += i < j ? -1 : 1; // deterministic push apart when exactly overlapping
-    return;
-  }
-  // Push away with weight 1/d (vector / d^2).
-  sums.sep[0] -= dx / d2;
-  sums.sep[1] -= dy / d2;
-  sums.sep[2] -= dz / d2;
+  set3(sums.align, ax, ay, az);
+  set3(sums.coh, cx, cy, cz);
+  set3(sums.sep, sx, sy, sz);
+  sums.neighbors = neighbors;
+  sums.candidates = candidates;
+  sums.separated = separated;
+  sums.collisions = collisions;
 }
 
 export function separationForce(

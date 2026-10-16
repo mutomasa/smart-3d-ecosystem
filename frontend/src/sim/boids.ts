@@ -37,7 +37,7 @@ export class BoidsSimulation {
   private grid: SpatialGrid;
   private rng: Rng;
   private contributors: SteeringContributor[] = [];
-  private candidates: Int32Array;
+  private readonly ranges = new Int32Array(54);
   private readonly sums = new NeighborSums();
   private readonly acc = new Float32Array(3);
   private readonly force = new Float32Array(3);
@@ -47,7 +47,6 @@ export class BoidsSimulation {
     this.rng = new Rng(config.seed);
     this.state = new BoidState(config.count);
     this.grid = new SpatialGrid(config.halfExtents, config.perceptionRadius);
-    this.candidates = new Int32Array(config.maxNeighbors);
     this.state.count = config.count;
     spawnFish(this.state, 0, config.count, config, this.rng);
   }
@@ -87,9 +86,10 @@ export class BoidsSimulation {
 
   private updateAgent(i: number): void {
     const { state, config } = this;
-    const n = this.grid.query(state.pos[i * 3], state.pos[i * 3 + 1], state.pos[i * 3 + 2], this.candidates);
-    accumulateNeighbors(i, this.candidates, n, state.pos, state.vel, config, this.sums);
-    this.stats.neighborChecks += n;
+    const o = i * 3;
+    const r = this.grid.queryRanges(state.pos[o], state.pos[o + 1], state.pos[o + 2], this.ranges);
+    accumulateNeighbors(i, this.grid.sortedIndices, this.ranges, r, state.pos, state.vel, config, this.sums);
+    this.stats.neighborChecks += this.sums.candidates;
     this.stats.collisions += this.sums.collisions;
     this.computeAcceleration(i);
     integrate(i * 3, this.acc, state.pos, state.vel, state.nextPos, state.nextVel, config);

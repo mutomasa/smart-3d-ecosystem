@@ -44,7 +44,7 @@ export const DEFAULT_CONFIG: SimConfig = {
   seed: 42,
   dt: 1 / 60,
   halfExtents: [50, 25, 50],
-  perceptionRadius: 5,
+  perceptionRadius: 4,
   separationRadius: 1.6,
   collisionRadius: 0.3,
   maxSpeed: 10,
@@ -57,10 +57,16 @@ export const DEFAULT_CONFIG: SimConfig = {
   weights: { ...DEFAULT_WEIGHTS },
 };
 
+/** Builds a config from defaults; `undefined` override values are ignored. */
 export function makeConfig(overrides: Partial<SimConfig> = {}): SimConfig {
   return {
     ...DEFAULT_CONFIG,
-    ...overrides,
-    weights: { ...DEFAULT_CONFIG.weights, ...(overrides.weights ?? {}) },
+    ...withoutUndefined(overrides),
+    halfExtents: [...(overrides.halfExtents ?? DEFAULT_CONFIG.halfExtents)] as [number, number, number],
+    weights: { ...DEFAULT_CONFIG.weights, ...withoutUndefined(overrides.weights ?? {}) },
   };
+}
+
+function withoutUndefined<T extends object>(obj: T): Partial<T> {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as Partial<T>;
 }
