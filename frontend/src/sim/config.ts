@@ -44,7 +44,7 @@ export const DEFAULT_CONFIG: SimConfig = {
   seed: 42,
   dt: 1 / 60,
   halfExtents: [50, 25, 50],
-  perceptionRadius: 5,
+  perceptionRadius: 4,
   separationRadius: 1.6,
   collisionRadius: 0.3,
   maxSpeed: 10,

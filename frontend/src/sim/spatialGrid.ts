@@ -34,12 +34,20 @@ export class SpatialGrid {
     this.scatter(alive, count);
   }
 
-  /** Writes candidate indices (unfiltered by distance) into `out`; returns how many were written. */
-  query(x: number, y: number, z: number, out: Int32Array): number {
+  /** Agent indices sorted by cell; index ranges returned by `queryRanges` point into this array. */
+  get sortedIndices(): Int32Array {
+    return this.sorted;
+  }
+
+  /**
+   * Writes `[start, end)` pairs into `ranges` (length >= 54) for the agent's own cell followed by
+   * its 26 neighbours, and returns the number of ranges. Nothing is truncated.
+   */
+  queryRanges(x: number, y: number, z: number, ranges: Int32Array): number {
     const cx = this.axisCell(x, 0);
     const cy = this.axisCell(y, 1);
     const cz = this.axisCell(z, 2);
-    let n = 0;
+    let r = this.pushRange(this.cellIndex(cx, cy, cz), ranges, 0);
     for (let dz = -1; dz <= 1; dz++) {
       const iz = cz + dz;
       if (iz < 0 || iz >= this.dims[2]) continue;
@@ -48,11 +56,21 @@ export class SpatialGrid {
         if (iy < 0 || iy >= this.dims[1]) continue;
         for (let dx = -1; dx <= 1; dx++) {
           const ix = cx + dx;
-          if (ix < 0 || ix >= this.dims[0]) continue;
-          n = this.copyCell(this.cellIndex(ix, iy, iz), out, n);
-          if (n >= out.length) return n;
+          if (ix < 0 || ix >= this.dims[0] || (dx === 0 && dy === 0 && dz === 0)) continue;
+          r = this.pushRange(this.cellIndex(ix, iy, iz), ranges, r);
         }
       }
+    }
+    return r;
+  }
+
+  /** Convenience: copies candidate indices (own cell first) into `out`, up to its length. */
+  query(x: number, y: number, z: number, out: Int32Array): number {
+    const ranges = new Int32Array(54);
+    const r = this.queryRanges(x, y, z, ranges);
+    let n = 0;
+    for (let k = 0; k < r && n < out.length; k++) {
+      for (let s = ranges[k * 2]; s < ranges[k * 2 + 1] && n < out.length; s++) out[n++] = this.sorted[s];
     }
     return n;
   }
@@ -98,10 +116,13 @@ export class SpatialGrid {
     }
   }
 
-  private copyCell(cell: number, out: Int32Array, n: number): number {
+  private pushRange(cell: number, ranges: Int32Array, r: number): number {
+    const start = this.cellStart[cell];
     const end = this.cellStart[cell + 1];
-    for (let k = this.cellStart[cell]; k < end && n < out.length; k++) out[n++] = this.sorted[k];
-    return n;
+    if (end === start) return r;
+    ranges[r * 2] = start;
+    ranges[r * 2 + 1] = end;
+    return r + 1;
   }
 
   private axisCell(v: number, axis: 0 | 1 | 2): number {

@@ -56,9 +56,9 @@ describe("BoidsSimulation", () => {
 
   it("forms locally aligned schools over time", () => {
     const sim = new BoidsSimulation(makeConfig({ count: 400, seed: 5 }));
-    const before = localAlignment(sim.state, 5);
+    const before = localAlignment(sim.state, 4);
     for (let s = 0; s < 600; s++) sim.step();
-    const after = localAlignment(sim.state, 5);
+    const after = localAlignment(sim.state, 4);
     expect(after).toBeGreaterThan(0.9);
     expect(after).toBeGreaterThan(before + 0.2);
   });
@@ -69,5 +69,27 @@ describe("BoidsSimulation", () => {
     const p = Array.from(sim.state.pos.slice(9, 12));
     for (let s = 0; s < 20; s++) sim.step();
     expect(Array.from(sim.state.pos.slice(9, 12))).toEqual(p);
+  });
+});
+
+describe("dense schools (regression #3)", () => {
+  it("does not collapse into a single cell at 3,000 agents", () => {
+    const sim = new BoidsSimulation(makeConfig({ count: 3000, seed: 1 }));
+    for (let s = 0; s < 720; s++) sim.step();
+    expect(sim.stats.maxCellOccupancy).toBeLessThan(200);
+    expect(sim.stats.collisions).toBeLessThan(30);
+  }, 30_000);
+
+  it("visits the agent's own cell first so truncation never drops the closest agents", async () => {
+    const { SpatialGrid } = await import("../src/sim/spatialGrid");
+    const n = 200;
+    const pos = new Float32Array(n * 3);
+    for (let i = 0; i < 100; i++) pos[i * 3] = -4.9; // neighbour cell (x = -5..0)
+    for (let i = 100; i < n; i++) pos[i * 3] = 0.1; // own cell (x = 0..5)
+    const grid = new SpatialGrid([10, 10, 10], 5);
+    grid.rebuild(pos, new Uint8Array(n).fill(1), n);
+    const out = new Int32Array(50);
+    grid.query(0.1, 0, 0, out);
+    expect(Array.from(out).every((j) => j >= 100)).toBe(true);
   });
 });
