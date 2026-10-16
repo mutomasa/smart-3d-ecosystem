@@ -20,6 +20,7 @@ from dashboard.api_client import ApiClient, ApiError
 from dashboard.charts import (
     METRICS,
     comparison_bar,
+    drop_short_runs,
     eval_bar,
     eval_summary_frame,
     learning_curve_figure,
@@ -128,7 +129,13 @@ def kpis(df) -> None:
 
 
 def comparison(df) -> None:
+    df, dropped = drop_short_runs(df)
+    if df.empty:
+        st.info("No run is long enough to compare yet.")
+        return
     st.subheader("Time-series comparison: Boids / Rules / ML")
+    if dropped:
+        st.caption(f"{dropped} run(s) shorter than 5 s were excluded (e.g. a scene before a preset was applied).")
     metric = st.selectbox("Metric", [m for m in METRICS if m in df], format_func=METRICS.get)
     st.plotly_chart(time_series_figure(df, metric), width="stretch")
     summary = mode_summary(df, list(METRICS))

@@ -1,6 +1,6 @@
 import { DEFAULT_CONFIG, type BoidsWeights } from "../sim/config";
 import type { WorkerEvent } from "../sim/protocol";
-import { PRESETS, type Preset } from "../presets";
+import { PRESETS, presetFromUrl, type Preset } from "../presets";
 import { AquariumScene } from "../scene/Scene";
 import { FishRenderer } from "../scene/FishRenderer";
 import { FoodRenderer, PredatorRenderer } from "../scene/EntityRenderers";
@@ -31,7 +31,7 @@ export class App {
   private readonly settingsGate = new SettingsVersionGate();
   private lastStats = -Infinity;
   readonly experimentId = experimentIdFromUrl(location.search);
-  private preset: Preset = PRESETS["Calm School"];
+  private preset: Preset = presetFromUrl(location.search);
 
   constructor(container: HTMLElement, hudEl: HTMLElement) {
     this.scene = new AquariumScene(container, DEFAULT_CONFIG.halfExtents);

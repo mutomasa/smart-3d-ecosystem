@@ -109,3 +109,13 @@ def test_eval_summary_and_learning_curve_figures():
     assert len(eval_bar(summary, "return").data) == 1
     curve = pd.DataFrame({"timesteps": [10, 20], "return_ma": [0.0, 1.0]})
     assert len(learning_curve_figure({"ppo-v1": curve, "bad": pd.DataFrame()}).data) == 1
+
+
+def test_short_runs_are_excluded_from_the_comparison():
+    from dashboard.charts import drop_short_runs
+
+    metrics = {"cmp-ml-1": {"samples": [sample(60, mode="boids")] + [sample(60 * k, mode="ml") for k in range(1, 8)]}}
+    df, dropped = drop_short_runs(samples_frame(metrics))
+    assert dropped == 1
+    assert set(df["mode"]) == {"ml"}
+    assert mode_summary(df, ["survivalRate"])["survivalRate count"].tolist() == [1]

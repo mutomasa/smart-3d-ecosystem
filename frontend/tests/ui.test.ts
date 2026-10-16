@@ -44,3 +44,17 @@ describe("HUD / presets", () => {
     expect(Object.keys(PRESETS)).toEqual(["Calm School", "Predator Attack", "Food Rush", "ML vs Rules"]);
   });
 });
+
+describe("presetFromUrl (#22)", () => {
+  it("starts directly in the requested scenario", async () => {
+    const { presetFromUrl } = await import("../src/presets");
+    const p = presetFromUrl("?preset=Food%20Rush&mode=ml&seed=3&count=1500&predators=2&food=4");
+    expect(p).toMatchObject({ name: "Food Rush", mode: "ml", seed: 3, count: 1500, predators: 2, food: 4 });
+  });
+
+  it("falls back to the preset values on invalid input", async () => {
+    const { presetFromUrl, PRESETS } = await import("../src/presets");
+    const p = presetFromUrl("?preset=nope&mode=evil&seed=-1&count=99999&predators=x");
+    expect(p).toEqual(PRESETS["Calm School"]);
+  });
+});

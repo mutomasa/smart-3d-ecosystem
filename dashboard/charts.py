@@ -47,6 +47,20 @@ def assign_runs(df: pd.DataFrame) -> pd.Series:
     return (tick_reset | changed).cumsum()
 
 
+MIN_RUN_SAMPLES = 5
+
+
+def drop_short_runs(df: pd.DataFrame, min_samples: int = MIN_RUN_SAMPLES) -> tuple[pd.DataFrame, int]:
+    """Removes runs with fewer than `min_samples` telemetry samples (~seconds), e.g. the default
+    scene that was visible for a moment before a preset was applied (#22).
+    Returns the filtered frame and the number of runs dropped."""
+    if df.empty:
+        return df, 0
+    sizes = df.groupby(["experiment_id", "run"])["tick"].transform("size")
+    dropped = df[sizes < min_samples].groupby(["experiment_id", "run"]).ngroups
+    return df[sizes >= min_samples].copy(), dropped
+
+
 def final_per_run(df: pd.DataFrame) -> pd.DataFrame:
     """Last sample of every run (the value a run ended with)."""
     if df.empty:
