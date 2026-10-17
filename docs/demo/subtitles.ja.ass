@@ -1,0 +1,55 @@
+[Script Info]
+; Japanese subtitles burned into docs/demo/smart-3d-ecosystem-demo.mp4 by scripts/make_demo_media.sh.
+; Timeline: intro 0-8 / calm 8-16 / predator compare 16-26 / food 26-35 / ML 35-44 / dashboard 44-66 / results 66-74
+ScriptType: v4.00+
+PlayResX: 1280
+PlayResY: 800
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Card,Noto Sans CJK JP,34,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,2,0,5,80,80,0,1
+Style: CardTitle,Noto Sans CJK JP,56,&H00FFE07A,&H00FFFFFF,&H00000000,&H00000000,1,0,0,0,100,100,1,0,1,3,0,8,80,80,150,1
+Style: Title,Noto Sans CJK JP,32,&H00FFE07A,&H00FFFFFF,&H00000000,&HB0000000,1,0,0,0,100,100,0,0,3,10,0,9,40,24,44,1
+Style: Sub,Noto Sans CJK JP,30,&H00FFFFFF,&H00FFFFFF,&H00000000,&HB0000000,1,0,0,0,100,100,0,0,3,10,0,2,40,40,34,1
+Style: Label,Noto Sans CJK JP,28,&H00FFFFFF,&H00FFFFFF,&H00000000,&HB0000000,1,0,0,0,100,100,0,0,3,8,0,1,0,0,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+; ---- intro ----
+Dialogue: 0,0:00:00.00,0:00:08.00,CardTitle,,0,0,0,,{\fad(400,300)}Smart 3D Ecosystem
+Dialogue: 0,0:00:00.50,0:00:08.00,Card,,0,0,0,,{\fad(500,300)}数千匹の魚が 3D の水中で群れを作り、捕食者から逃げ、餌を探す。\N\Nその「群れの意思決定」を {\c&H66E0FF&}ルールベース{\c} と\N{\c&H66E0FF&}学習済み方策（PyTorch / PPO）{\c} で切り替え、\N同じ条件で何が違うのかを{\c&H66E0FF&}数値で比べられる{\c}インタラクティブなデモです。
+
+; ---- 1. calm school ----
+Dialogue: 0,0:00:08.00,0:00:16.00,Title,,0,0,0,,① 群れの形成 ― Boids only（意思決定なし）
+Dialogue: 0,0:00:08.00,0:00:12.00,Sub,,0,0,0,,2,000 匹の魚が「分離・整列・結合」の 3 つの局所ルールだけで群れを作ります
+Dialogue: 0,0:00:12.00,0:00:16.00,Sub,,0,0,0,,描画は three.js の InstancedMesh、計算は Web Worker で毎秒 60 ステップ
+
+; ---- 2. predator compare ----
+Dialogue: 0,0:00:16.00,0:00:26.00,Title,,0,0,0,,② 捕食者が来たら ― 同じシード・同じ捕食者 3 体で左右比較
+Dialogue: 0,0:00:16.00,0:00:26.00,Label,,0,0,0,,{\an7\pos(16,612)}左：Boids only（避けるだけ）
+Dialogue: 0,0:00:16.00,0:00:26.00,Label,,0,0,0,,{\an7\pos(656,612)}右：Rules（群れで逃避＋採餌）
+Dialogue: 0,0:00:16.00,0:00:21.00,Sub,,0,0,0,,違うのは「群れの意思決定」だけ。右は危険半径に入った捕食者から\N群れごと離れ、左は目の前の捕食者を避けるだけ
+Dialogue: 0,0:00:21.00,0:00:26.00,Sub,,0,0,0,,30 秒 × 5 シードの捕食数：Boids only {\c&H6B6BFF&}56.4 匹{\c} → Rules {\c&H66E0FF&}9.2 匹{\c}（約 1/6）\N※捕食者 2・餌 4 の評価条件
+
+; ---- 3. food rush ----
+Dialogue: 0,0:00:26.00,0:00:35.00,Title,,0,0,0,,③ 餌を探す ― Food Rush（Rules）
+Dialogue: 0,0:00:26.00,0:00:30.50,Sub,,0,0,0,,黄緑の球が餌。空腹のグループが最寄りの餌へ向かい、\N食べ尽くすと次の餌へ移ります
+Dialogue: 0,0:00:30.50,0:00:35.00,Sub,,0,0,0,,左上 HUD の Food が増え続ける ＝ 群れが餌を見つけている\N（Boids only では 30 秒で 5.3、Rules では 231.9）
+
+; ---- 4. ML policy ----
+Dialogue: 0,0:00:35.00,0:00:44.00,Title,,0,0,0,,④ 意思決定を学習済み方策に切替 ― ML（PyTorch PPO）
+Dialogue: 0,0:00:35.00,0:00:39.50,Sub,,0,0,0,,16 グループの状態を FastAPI へ WebSocket で 10Hz 送信し、\NPPO 方策が各グループの向かう方向と重みを返します（p50 約 3ms）
+Dialogue: 0,0:00:39.50,0:00:44.00,Sub,,0,0,0,,結果は Rules とほぼ同等：餌 224.0（Rules 231.9）・捕食 9.6（Rules 9.2）\N推論が途切れても自動で Rules に戻り、シミュレーションは止まりません
+
+; ---- 5. dashboard ----
+Dialogue: 0,0:00:44.00,0:01:06.00,Title,,0,0,0,,⑤ Streamlit ダッシュボードで数値比較
+Dialogue: 0,0:00:44.00,0:00:48.00,Sub,,0,0,0,,3D 画面を埋め込み、プリセット・個体数・方策をその場で切り替え
+Dialogue: 0,0:00:48.00,0:00:53.00,Sub,,0,0,0,,時系列：Boids only は餌がほぼ増えず、Rules と ML は右肩上がり
+Dialogue: 0,0:00:53.00,0:00:58.00,Sub,,0,0,0,,5 シードの平均 ± 標準偏差。見た目の印象ではなく数値で優劣を判断
+Dialogue: 0,0:00:58.00,0:01:06.00,Sub,,0,0,0,,オフライン評価：学習に使っていないシードで\Nrandom / rules / BC / PPO を同条件比較
+
+; ---- results ----
+Dialogue: 0,0:01:06.00,0:01:14.00,CardTitle,,0,0,0,,{\fad(300,400)}結果
+Dialogue: 0,0:01:06.30,0:01:14.00,Card,,0,0,0,,{\fad(300,400)}1,500 匹・捕食者 2・餌 4・30 秒 × 5 シード\N\NBoids only：生存率 0.962 ／ 餌 {\c&H6B6BFF&}5.3{\c} ／ 捕食 {\c&H6B6BFF&}56.4{\c}\NRules：生存率 0.994 ／ 餌 {\c&H66E0FF&}231.9{\c} ／ 捕食 {\c&H66E0FF&}9.2{\c}\NML（PPO）：生存率 0.994 ／ 餌 224.0 ／ 捕食 9.6\N\N群れの意思決定で捕食は約 1/6、餌は約 40 倍。\NPPO は Rules とほぼ同等で、上回ってはいません。

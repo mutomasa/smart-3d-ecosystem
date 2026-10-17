@@ -34,19 +34,26 @@ gif $RAW/predator-compare.webm predator-compare.gif 0 10 1100 10
 # Dashboard: skip the loading screen
 gif $RAW/dashboard.webm dashboard.gif 6 22 800 5
 
-# Full demo video (H.264 MP4) with captions
-clip() {  # clip <in> <start> <dur> <caption> <out>
-  ffmpeg -v error -y -ss "$2" -t "$3" -i "$1" \
-    -vf "scale=1280:800:force_original_aspect_ratio=decrease,pad=1280:800:(ow-iw)/2:(oh-ih)/2:color=0x030b1a,$(label "$4"),fps=30" \
-    -c:v libx264 -pix_fmt yuv420p -crf 23 -an "$5"
+# Full demo video (H.264 MP4) with burned-in Japanese subtitles (subtitles.ja.ass)
+encode() {  # encode <out> <ffmpeg input args...> -- <video filter>
+  local out=$1; shift
+  local args=(); while [[ $1 != -- ]]; do args+=("$1"); shift; done; shift
+  ffmpeg -v error -y "${args[@]}" \
+    -vf "scale=1280:800:force_original_aspect_ratio=decrease,pad=1280:800:(ow-iw)/2:(oh-ih)/2:color=0x030b1a,${1:+$1,}fps=30" \
+    -c:v libx264 -pix_fmt yuv420p -crf 20 -an "$out"
 }
+clip() { encode "$4" -ss "$2" -t "$3" -i "$1" -- ""; }  # clip <in> <start> <dur> <out>
 TMP=$(mktemp -d)
-clip $RAW/calm-school.webm 2 8 '1. Boids: 2,000 fish form schools (InstancedMesh + Web Worker)' "$TMP/1.mp4"
-clip $RAW/predator-compare.webm 0 10 '2. Same seed: Boids only (left) vs Rules (right) under predator attack' "$TMP/2.mp4"
-clip $RAW/food-rush.webm 4 9 '3. Food Rush: hungry groups find and deplete food patches' "$TMP/3.mp4"
-clip $RAW/ml-policy.webm 5 9 '4. ML mode: PyTorch PPO policy served over WebSocket (CUDA)' "$TMP/4.mp4"
-clip $RAW/dashboard.webm 6 22 '5. Streamlit dashboard: live Boids / Rules / ML comparison' "$TMP/5.mp4"
-printf "file '%s'\n" "$TMP"/{1,2,3,4,5}.mp4 > "$TMP/list.txt"
-ffmpeg -v error -y -f concat -safe 0 -i "$TMP/list.txt" -c copy smart-3d-ecosystem-demo.mp4
+encode "$TMP/0.mp4" -ss 2 -t 8 -i $RAW/calm-school.webm -- "boxblur=6,eq=brightness=-0.28"  # intro card
+clip $RAW/calm-school.webm 2 8 "$TMP/1.mp4"
+clip $RAW/predator-compare.webm 0 10 "$TMP/2.mp4"
+clip $RAW/food-rush.webm 4 9 "$TMP/3.mp4"
+clip $RAW/ml-policy.webm 5 9 "$TMP/4.mp4"
+clip $RAW/dashboard.webm 6 22 "$TMP/5.mp4"
+encode "$TMP/6.mp4" -f lavfi -i color=c=0x030b1a:s=1280x800:r=30:d=8 -- ""  # results card
+printf "file '%s'\n" "$TMP"/{0,1,2,3,4,5,6}.mp4 > "$TMP/list.txt"
+ffmpeg -v error -y -f concat -safe 0 -i "$TMP/list.txt" -c copy "$TMP/plain.mp4"
+ffmpeg -v error -y -i "$TMP/plain.mp4" -vf "subtitles=subtitles.ja.ass" \
+  -c:v libx264 -pix_fmt yuv420p -crf 20 -movflags +faststart smart-3d-ecosystem-demo.mp4
 rm -rf "$TMP"
 ls -lh *.gif *.mp4

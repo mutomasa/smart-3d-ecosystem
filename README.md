@@ -15,8 +15,9 @@
 | ダッシュボード | Streamlit + Plotly |
 | 環境・テスト | uv (Python 3.11), npm, pytest, Vitest, Playwright |
 
-- **デモ動画**（約 60 秒・MP4）: [docs/demo/smart-3d-ecosystem-demo.mp4](docs/demo/smart-3d-ecosystem-demo.mp4)
+- **デモ動画**（74 秒・MP4・日本語字幕付き）: [docs/demo/smart-3d-ecosystem-demo.mp4](docs/demo/smart-3d-ecosystem-demo.mp4)<br>冒頭でデモの狙いを示し、各場面で「何を切り替えて、何が変わったか」を字幕で説明し、最後に 5 シード評価の数値をまとめています（字幕の原稿: [docs/demo/subtitles.ja.ass](docs/demo/subtitles.ja.ass)）。
 - 設計書: [docs/smart_3d_ecosystem_design.md](docs/smart_3d_ecosystem_design.md) / 進捗と Issue 一覧: [todo.md](todo.md)
+- **アルゴリズム解説（Boids / PPO の理論と数式）**: [docs/algorithms.md](docs/algorithms.md)
 
 ---
 
