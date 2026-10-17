@@ -20,8 +20,10 @@ from dashboard.api_client import ApiClient, ApiError
 from dashboard.charts import (
     METRICS,
     comparison_bar,
+    drop_short_runs,
     eval_bar,
     eval_summary_frame,
+    filter_experiments,
     learning_curve_figure,
     mode_summary,
     samples_frame,
@@ -44,6 +46,10 @@ def api() -> ApiClient:
 def sidebar_controls() -> tuple[str, dict]:
     st.sidebar.header("Experiment")
     experiment_id = st.sidebar.text_input("Experiment ID", value="demo", max_chars=64)
+    st.sidebar.text_input(
+        "Compare experiments (ID prefix, empty = all)", key="compare_prefix",
+        value=st.query_params.get("compare", ""), max_chars=64,
+    )
     st.sidebar.header("Scenario")
     settings = {
         "preset": st.sidebar.selectbox("Preset", ["(custom)", *PRESETS]),
@@ -109,12 +115,14 @@ def live_metrics(client: ApiClient, experiment_id: str) -> None:
     except ApiError as exc:
         st.warning(str(exc))
         return
-    df = samples_frame(metrics)
+    prefix = st.session_state.get("compare_prefix", "")
+    df = samples_frame(filter_experiments(metrics, prefix, keep=experiment_id))
     if df.empty:
         st.info("No telemetry yet. Open the scene above; it reports metrics once per second.")
         return
     kpis(df[df["experiment_id"] == experiment_id])
-    comparison(df)
+    prefix = st.session_state.get("compare_prefix", "")
+    comparison(df[df["experiment_id"].str.startswith(prefix)] if prefix else df)
 
 
 def kpis(df) -> None:
@@ -128,7 +136,13 @@ def kpis(df) -> None:
 
 
 def comparison(df) -> None:
+    df, dropped = drop_short_runs(df)
+    if df.empty:
+        st.info("No run is long enough to compare yet.")
+        return
     st.subheader("Time-series comparison: Boids / Rules / ML")
+    if dropped:
+        st.caption(f"{dropped} run(s) shorter than 5 s were excluded (e.g. a scene before a preset was applied).")
     metric = st.selectbox("Metric", [m for m in METRICS if m in df], format_func=METRICS.get)
     st.plotly_chart(time_series_figure(df, metric), width="stretch")
     summary = mode_summary(df, list(METRICS))
