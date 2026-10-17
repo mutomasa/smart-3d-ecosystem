@@ -97,10 +97,10 @@ Boids は Craig Reynolds（1987）が提案した群れのモデルです。各�
 Boids の各規則は「望ましい速度」を出し、そこへ向かう操舵力を返します。
 
 ```math
-\operatorname{steer}(\mathbf{u};\, \mathbf{v}) =
-\operatorname{clamp}\!\left( v_{\max}\,\frac{\mathbf{u}}{\lVert\mathbf{u}\rVert} - \mathbf{v},\; F_{\max} \right),
+\mathrm{steer}(\mathbf{u};\, \mathbf{v}) =
+\mathrm{clamp}\!\left( v_{\max}\,\frac{\mathbf{u}}{\lVert\mathbf{u}\rVert} - \mathbf{v},\; F_{\max} \right),
 \qquad
-\operatorname{clamp}(\mathbf{x}, c) = \mathbf{x}\cdot\min\!\left(1, \frac{c}{\lVert \mathbf{x} \rVert}\right)
+\mathrm{clamp}(\mathbf{x}, c) = \mathbf{x}\cdot\min\!\left(1, \frac{c}{\lVert \mathbf{x} \rVert}\right)
 ```
 
 - 方向 $\mathbf{u}$ に最高速 $v_{\max}$ で進みたいときの速度差が、そのまま力になります。$\lVert\mathbf{u}\rVert = 0$ のときは $\mathbf{0}$ を返します。
@@ -113,7 +113,7 @@ Boids の各規則は「望ましい速度」を出し、そこへ向かう操�
 ```math
 \mathbf{s}_i = -\sum_{j \in \mathcal{S}_i} \frac{\mathbf{p}_j - \mathbf{p}_i}{\lVert \mathbf{p}_j - \mathbf{p}_i \rVert^{2}},
 \qquad
-\mathbf{F}^{\text{sep}}_i = \operatorname{steer}(\mathbf{s}_i;\, \mathbf{v}_i)
+\mathbf{F}^{\text{sep}}_i = \mathrm{steer}(\mathbf{s}_i;\, \mathbf{v}_i)
 ```
 
 - 各項は大きさが $1/d$ のベクトルです（単位ベクトルを距離 $d$ で割ったもの）。
@@ -122,7 +122,7 @@ Boids の各規則は「望ましい速度」を出し、そこへ向かう操�
 **整列**：仲間の平均速度の向きへ揃えます。
 
 ```math
-\mathbf{F}^{\text{ali}}_i = \operatorname{steer}\!\Big(\sum_{j\in\mathcal{N}_i^K} \mathbf{v}_j;\; \mathbf{v}_i\Big)
+\mathbf{F}^{\text{ali}}_i = \mathrm{steer}\!\Big(\sum_{j\in\mathcal{N}_i^K} \mathbf{v}_j;\; \mathbf{v}_i\Big)
 ```
 
 操舵関数が正規化するので、平均ではなく総和でも向きは同じです。
@@ -132,7 +132,7 @@ Boids の各規則は「望ましい速度」を出し、そこへ向かう操�
 ```math
 \bar{\mathbf{p}}_i = \frac{1}{|\mathcal{N}_i^K|}\sum_{j\in\mathcal{N}_i^K}\mathbf{p}_j,
 \qquad
-\mathbf{F}^{\text{coh}}_i = \operatorname{steer}(\bar{\mathbf{p}}_i - \mathbf{p}_i;\; \mathbf{v}_i)
+\mathbf{F}^{\text{coh}}_i = \mathrm{steer}(\bar{\mathbf{p}}_i - \mathbf{p}_i;\; \mathbf{v}_i)
 ```
 
 近傍が空のとき、各規則の力は $\mathbf{0}$ です。
@@ -145,11 +145,11 @@ Boids の各規則は「望ましい速度」を出し、そこへ向かう操�
 b_k(\mathbf{p}) =
 \begin{cases}
 -\min\!\big(1, \frac{p_k - (h_k - m)}{m}\big) & p_k > h_k - m \\[2pt]
-\phantom{-}\min\!\big(1, \frac{-(h_k - m) - p_k}{m}\big) & p_k < -(h_k - m) \\[2pt]
+\min\!\big(1, \frac{-(h_k - m) - p_k}{m}\big) & p_k < -(h_k - m) \\[2pt]
 0 & \text{otherwise}
 \end{cases}
 \qquad
-\mathbf{F}^{\text{bnd}}_i = \lVert \mathbf{b} \rVert_\infty \cdot \operatorname{steer}(\mathbf{b};\, \mathbf{v}_i)
+\mathbf{F}^{\text{bnd}}_i = \lVert \mathbf{b} \rVert_\infty \cdot \mathrm{steer}(\mathbf{b};\, \mathbf{v}_i)
 ```
 
 $\lVert \mathbf{b} \rVert_\infty = \max_k |b_k| \in [0,1]$ が侵入の深さを表します。
@@ -157,7 +157,7 @@ $\lVert \mathbf{b} \rVert_\infty = \max_k |b_k| \in [0,1]$ が侵入の深さを
 **外向き成分の除去**：逃避や目標追従の力は、そのままだと群れを壁に押し付けてしまいます（Issue #9）。そこで、マージン内では力の外向き成分を $(1-|b_k|)$ 倍に弱めます。
 
 ```math
-\big[\operatorname{removeOutward}(\mathbf{f})\big]_k =
+\big[\mathrm{removeOutward}(\mathbf{f})\big]_k =
 \begin{cases}
 f_k\,(1 - |b_k|) & f_k \text{ が壁の外向き} \\
 f_k & \text{otherwise}
@@ -173,7 +173,7 @@ f_k & \text{otherwise}
 **捕食者からの逃避**（危険半径 $r_d = 18$ 以内の捕食者 $\mathbf{q}$ について和を取る）：
 
 ```math
-\mathbf{F}^{\text{pred}}_i = \operatorname{removeOutward}\!\left(
+\mathbf{F}^{\text{pred}}_i = \mathrm{removeOutward}\!\left(
 \sum_{\mathbf{q}:\, d < r_d} W_{\text{pred}}\, w^{\text{pred}}_g\, F_{\max}
 \left(1 - \frac{d}{r_d}\right)
 \frac{\mathbf{p}_i - \mathbf{q}}{d}
@@ -195,7 +195,7 @@ $e_i \in [0,1]$ は個体のエネルギーです。空腹なほど強く引か�
 **グループ方向**（方策の $\mathbf{d}_g$ に従う）：
 
 ```math
-\hat{\mathbf{d}} = \operatorname{removeOutward}\!\left(\frac{\mathbf{d}_g}{\lVert\mathbf{d}_g\rVert}\right),\qquad
+\hat{\mathbf{d}} = \mathrm{removeOutward}\!\left(\frac{\mathbf{d}_g}{\lVert\mathbf{d}_g\rVert}\right),\qquad
 \mathbf{F}^{\text{ml}}_i = W_{\text{ml}}\, F_{\max}\, \min(1, \lVert\mathbf{d}_g\rVert)\,
 \frac{v_{\max}\hat{\mathbf{d}} - \mathbf{v}_i}{\lVert v_{\max}\hat{\mathbf{d}} - \mathbf{v}_i\rVert}
 ```
@@ -217,7 +217,7 @@ $\lVert\mathbf{d}_g\rVert$ は「その方向へ行きたい強さ」を表し�
 **合成**：
 
 ```math
-\mathbf{a}_i = \operatorname{clamp}\!\Big(
+\mathbf{a}_i = \mathrm{clamp}\!\Big(
 W_{\text{sep}}\mathbf{F}^{\text{sep}}_i + W_{\text{ali}}\mathbf{F}^{\text{ali}}_i
 + 2 w^{\text{coh}}_g W_{\text{coh}}\mathbf{F}^{\text{coh}}_i + W_{\text{bnd}}\mathbf{F}^{\text{bnd}}_i
 + \mathbf{F}^{\text{pred}}_i + \mathbf{F}^{\text{food}}_i + \mathbf{F}^{\text{ml}}_i,\; F_{\max} \Big)
@@ -233,18 +233,18 @@ W_{\text{sep}}\mathbf{F}^{\text{sep}}_i + W_{\text{ali}}\mathbf{F}^{\text{ali}}_
 
 ```math
 \tilde{\mathbf{v}} = \mathbf{v}_i + \mathbf{a}_i \Delta t,\qquad
-s = \operatorname{clip}\big(\lVert\tilde{\mathbf{v}}\rVert,\, v_{\min},\, v_{\max}\big)
+s = \mathrm{clip}\big(\lVert\tilde{\mathbf{v}}\rVert,\, v_{\min},\, v_{\max}\big)
 ```
 
 ```math
-\mathbf{v}_i' = s\cdot \operatorname{rotTowards}\!\left(\hat{\mathbf{v}}_i,\, \hat{\tilde{\mathbf{v}}},\, \omega_{\max}\Delta t\right),\qquad
-\mathbf{p}_i' = \operatorname{clip}\big(\mathbf{p}_i + \mathbf{v}_i'\Delta t,\ \pm 1.1\,\mathbf{h}\big)
+\mathbf{v}_i' = s\cdot \mathrm{rotTowards}\!\left(\hat{\mathbf{v}}_i,\, \hat{\tilde{\mathbf{v}}},\, \omega_{\max}\Delta t\right),\qquad
+\mathbf{p}_i' = \mathrm{clip}\big(\mathbf{p}_i + \mathbf{v}_i'\Delta t,\ \pm 1.1\,\mathbf{h}\big)
 ```
 
-**旋回制限**：$\operatorname{rotTowards}$ は球面線形補間（slerp）です。現在の向き $\hat{\mathbf{u}}$ から目標の向き $\hat{\mathbf{w}}$ へ、最大角 $\varphi = \omega_{\max}\Delta t$ だけ回します。$\theta = \arccos(\hat{\mathbf{u}}\cdot\hat{\mathbf{w}})$ として次の通りです。
+**旋回制限**：$\mathrm{rotTowards}$ は球面線形補間（slerp）です。現在の向き $\hat{\mathbf{u}}$ から目標の向き $\hat{\mathbf{w}}$ へ、最大角 $\varphi = \omega_{\max}\Delta t$ だけ回します。$\theta = \arccos(\hat{\mathbf{u}}\cdot\hat{\mathbf{w}})$ として次の通りです。
 
 ```math
-\operatorname{rotTowards}(\hat{\mathbf{u}}, \hat{\mathbf{w}}, \varphi) =
+\mathrm{rotTowards}(\hat{\mathbf{u}}, \hat{\mathbf{w}}, \varphi) =
 \begin{cases}
 \hat{\mathbf{w}} & \theta \le \varphi \\[4pt]
 \dfrac{\sin(\theta - \varphi)\,\hat{\mathbf{u}} + \sin\varphi\,\hat{\mathbf{w}}}{\sin\theta} & \theta > \varphi
@@ -321,7 +321,7 @@ PPO の学習には、ブラウザのシミュレーションを NumPy で移植
 これを、特徴量ごとのスケール $\mathbf{c}$（世界の半径、最高速 12、最大距離 150 など）で割り、クリップします。
 
 ```math
-o = \operatorname{clip}\!\left(\frac{\mathbf{x}}{\mathbf{c}},\, -5,\, 5\right)
+o = \mathrm{clip}\!\left(\frac{\mathbf{x}}{\mathbf{c}},\, -5,\, 5\right)
 ```
 
 捕食者や餌がいないときは、相対ベクトル $= \mathbf{0}$、距離 $= 150$、フラグ $= 0$ という番兵値を入れます。この正規化は Python の `backend/normalization.py` の 1 箇所だけで行い、学習時にも推論時にも同じ関数を通します。
@@ -331,7 +331,7 @@ o = \operatorname{clip}\!\left(\frac{\mathbf{x}}{\mathbf{c}},\, -5,\, 5\right)
 方策の生出力 $a \in \mathbb{R}^6$ を、次の後処理で戦略に変換します。学習と推論で共通の `backend/actions.py` です。
 
 ```math
-\tilde{a} = \operatorname{clip}(a, -5, 5),\qquad
+\tilde{a} = \mathrm{clip}(a, -5, 5),\qquad
 \mathbf{d} = \frac{\tilde{a}_{1:3}}{\max(1, \lVert \tilde{a}_{1:3} \rVert)},\qquad
 \mathbf{w} = \sigma(\tilde{a}_{4:6}) = \frac{1}{1 + e^{-\tilde{a}_{4:6}}}
 ```
@@ -456,7 +456,7 @@ PPO（Schulman et al., 2017）は制約の代わりに、確率比をクリッ�
 ```math
 L^{\text{CLIP}}(\theta) = \hat{\mathbb{E}}_t\!\left[
 \min\Big( r_t(\theta)\hat{A}_t,\;
-\operatorname{clip}\big(r_t(\theta),\, 1-\epsilon,\, 1+\epsilon\big)\hat{A}_t \Big)
+\mathrm{clip}\big(r_t(\theta),\, 1-\epsilon,\, 1+\epsilon\big)\hat{A}_t \Big)
 \right],\qquad \epsilon = 0.2
 ```
 
@@ -490,7 +490,7 @@ Actor、Critic、エントロピーを 1 つの損失にまとめて、Adam で�
 行動は 6 次元の連続値なので、対角ガウス分布で表します。
 
 ```math
-\pi_\theta(a\mid s) = \mathcal{N}\big(a;\ \boldsymbol{\mu}_\theta(s),\ \operatorname{diag}(\boldsymbol{\sigma}^2)\big),
+\pi_\theta(a\mid s) = \mathcal{N}\big(a;\ \boldsymbol{\mu}_\theta(s),\ \mathrm{diag}(\boldsymbol{\sigma}^2)\big),
 \qquad \boldsymbol{\sigma} = e^{\boldsymbol{\ell}}
 ```
 
