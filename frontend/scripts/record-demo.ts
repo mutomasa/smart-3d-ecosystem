@@ -25,6 +25,7 @@ const SCENES: Scene[] = [
   { name: "calm-school", preset: { name: "Calm School", count: 2000, seed: 42, mode: "boids", predators: 0, food: 0, weights: {} }, camera: [0, 18, 68], seconds: 9, autoRotate: true },
   { name: "predator-boids", preset: { name: "Predator Attack", count: 1500, seed: 7, mode: "boids", predators: 3, food: 0, weights: {} }, camera: [0, 30, 75], seconds: 12, warmup: 4 },
   { name: "predator-rules", preset: { name: "Predator Attack", count: 1500, seed: 7, mode: "rules", predators: 3, food: 0, weights: {} }, camera: [0, 30, 75], seconds: 12, warmup: 4 },
+  { name: "predator-ml", preset: { name: "Predator Attack", count: 1500, seed: 7, mode: "ml", predators: 3, food: 0, weights: {} }, camera: [0, 30, 75], seconds: 12, warmup: 4 },
   { name: "food-rush", preset: { name: "Food Rush", count: 1500, seed: 11, mode: "rules", predators: 0, food: 6, weights: {} }, camera: [0, 40, 80], seconds: 12, warmup: 2 },
   { name: "ml-policy", preset: { name: "ML vs Rules", count: 1500, seed: 2024, mode: "ml", predators: 2, food: 4, weights: {} }, camera: [0, 30, 75], seconds: 12, warmup: 4 },
 ];

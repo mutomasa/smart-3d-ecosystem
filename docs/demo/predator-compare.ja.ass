@@ -1,0 +1,24 @@
+[Script Info]
+; Japanese captions burned into docs/demo/predator-compare.gif by scripts/make_demo_media.sh.
+; Canvas: three 960x600 panels side by side (Boids only / Rules / ML) + a 220px caption band below.
+ScriptType: v4.00+
+PlayResX: 2880
+PlayResY: 820
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Label,Noto Sans CJK JP,56,&H00FFFFFF,&H00FFFFFF,&H00000000,&HB0000000,1,0,0,0,100,100,0,0,3,14,0,1,0,0,0,1
+Style: Sub,Noto Sans CJK JP,58,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,0,0,5,60,60,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+; ---- panel labels (bottom-left of each panel) ----
+Dialogue: 0,0:00:00.00,0:00:10.00,Label,,0,0,0,,{\pos(24,576)}Boids only：群れるだけ
+Dialogue: 0,0:00:00.00,0:00:10.00,Label,,0,0,0,,{\pos(984,576)}Rules：ルールで群れごと逃避
+Dialogue: 0,0:00:00.00,0:00:10.00,Label,,0,0,0,,{\pos(1944,576)}ML（PPO）：学習済み方策で逃避
+; ---- captions (band below the panels) ----
+Dialogue: 0,0:00:00.00,0:00:03.30,Sub,,0,0,0,,{\pos(1440,710)}同じシード・1,500 匹・捕食者 3 体（赤）。違うのは「群れの意思決定」だけ\N左から Boids only ／ Rules ／ ML（PPO）
+Dialogue: 0,0:00:03.30,0:00:06.60,Sub,,0,0,0,,{\pos(1440,710)}{\c&H6B6BFF&}Boids only{\c} は群れを作るだけで捕食者を避けず、近づかれた魚から次々に食べられる\NRules と ML は危険半径に入ったグループが逃げる方向を選び、群れごと離れる
+Dialogue: 0,0:00:06.60,0:00:10.00,Sub,,0,0,0,,{\pos(1440,710)}この場面の捕食数：Boids only {\c&H6B6BFF&}41 匹{\c} ／ Rules {\c&H66E0FF&}7 匹{\c} ／ ML {\c&H66E0FF&}7 匹{\c}\NPPO 方策はルールとほぼ同じ逃げ方を学習（FastAPI へ WebSocket で 10Hz 推論）
