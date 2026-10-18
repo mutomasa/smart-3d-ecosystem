@@ -29,7 +29,12 @@ gif $RAW/ml-policy.webm ml-policy.gif 5 9 720 12
 ffmpeg -v error -y -ss 5 -t 10 -i $RAW/predator-boids.webm -ss 5 -t 10 -i $RAW/predator-rules.webm \
   -filter_complex "[0:v]$(label 'Boids only')[l];[1:v]$(label 'Rules (flee + forage)')[r];[l][r]hstack=inputs=2" \
   -c:v libvpx-vp9 -b:v 0 -crf 32 $RAW/predator-compare.webm
-gif $RAW/predator-compare.webm predator-compare.gif 0 10 1100 10
+
+# README GIF: Boids only / Rules / ML side by side, with Japanese captions (predator-compare.ja.ass)
+ffmpeg -v error -y -ss 5 -t 10 -i $RAW/predator-boids.webm -ss 5 -t 10 -i $RAW/predator-rules.webm -ss 5 -t 10 -i $RAW/predator-ml.webm \
+  -filter_complex "[0:v][1:v][2:v]hstack=inputs=3,pad=iw:ih+220:0:0:color=0x030b1a,subtitles=predator-compare.ja.ass" \
+  -c:v libvpx-vp9 -b:v 0 -crf 32 $RAW/predator-compare3.webm
+gif $RAW/predator-compare3.webm predator-compare.gif 0 10 1200 10
 
 # Dashboard: skip the loading screen
 gif $RAW/dashboard.webm dashboard.gif 6 22 800 5
